@@ -1,1 +1,1560 @@
-<html></html></html>
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>מערכת ניהול | שיראל</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<style>
+:root{
+  --p1:#1F4E79;--p2:#2E75B6;--lt:#D6E4F0;--ltr:#BDD7EE;--acc:#FFEB9C;
+  --tx:#1a1a2e;--muted:#666;--brd:#c5d8ec;--red:#e74c3c;--r:8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Heebo',sans-serif;direction:rtl;background:#eef2f7;color:var(--tx);min-height:100vh;font-size:15px}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--p1),var(--p2))}
+.login-box{background:#fff;border-radius:16px;padding:40px 36px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.3);direction:rtl}
+.login-logo{text-align:center;margin-bottom:24px}
+.login-logo .lic{font-size:2.2rem}
+.login-logo .ltitle{font-size:1.25rem;font-weight:700;color:var(--p1);margin-top:6px}
+.login-logo .lsub{font-size:.8rem;color:var(--muted)}
+.login-box label{display:block;font-size:.83rem;font-weight:600;margin-bottom:4px;margin-top:12px}
+.login-box input[type=email],.login-box input[type=password]{width:100%;padding:9px 12px;border:1px solid var(--brd);border-radius:6px;font-family:'Heebo',sans-serif;font-size:.9rem;direction:ltr}
+.login-box input:focus{outline:none;border-color:var(--p2);box-shadow:0 0 0 2px rgba(46,117,182,.15)}
+.login-remember{display:flex;align-items:center;gap:7px;margin-top:11px;cursor:pointer;font-size:.83rem;color:var(--muted);user-select:none}
+.login-remember input{width:15px;height:15px;cursor:pointer;accent-color:var(--p2)}
+.login-err{color:var(--red);font-size:.82rem;margin-top:8px;text-align:center;min-height:18px}
+.btn-login{width:100%;margin-top:16px;padding:11px;background:linear-gradient(90deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:8px;font-family:'Heebo',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .2s}
+.btn-login:hover{opacity:.88}
+
+/* SYNC DOT */
+.sync-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0}
+.sync-ok{background:#27ae60}.sync-off{background:#ccc}.sync-err{background:var(--red)}.sync-busy{background:#f39c12;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sync-wrap{display:flex;align-items:center;gap:5px;font-size:.74rem;opacity:.85}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;padding:10px 22px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 3px 10px rgba(0,0,0,.25);position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:8px}
+.header-left{display:flex;align-items:center}
+.header-left .hlogo{font-size:1.1rem;font-weight:700}
+.header-left .hsub{font-size:.74rem;opacity:.8;margin-top:1px}
+.header-logo-img{height:40px;width:auto;border-radius:4px}
+.login-logo-img{height:72px;width:auto}
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.user-pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);padding:5px 13px;border-radius:20px;font-size:.81rem;display:flex;align-items:center;gap:6px}
+.user-pill .uadmin{font-size:.68rem;background:var(--acc);color:#7a5800;padding:1px 7px;border-radius:10px;font-weight:700}
+.btn-hdr{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:6px 13px;border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.79rem;transition:background .2s}
+.btn-hdr:hover{background:rgba(255,255,255,.28)}
+
+/* TABS */
+.tabs-bar{background:#fff;border-bottom:2px solid var(--lt);display:flex;padding:0 18px;overflow-x:auto}
+.tab{padding:12px 18px;cursor:pointer;font-size:.88rem;font-weight:500;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s;user-select:none}
+.tab:hover{color:var(--p2)}
+.tab.active{color:var(--p1);border-bottom-color:var(--p1);font-weight:700}
+
+/* MAIN */
+.main{max-width:1140px;margin:0 auto;padding:20px 16px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.sec-title{font-size:1.08rem;font-weight:700;color:var(--p1);margin-bottom:14px;padding-bottom:7px;border-bottom:2px solid var(--lt)}
+.section-sub{font-size:.82rem;font-weight:700;color:var(--p2);margin-bottom:9px;text-transform:uppercase;letter-spacing:.03em}
+
+/* BUTTONS */
+.btn{border:none;border-radius:6px;padding:7px 13px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.83rem;font-weight:500;transition:all .18s;display:inline-flex;align-items:center;gap:5px}
+.btn-primary{background:var(--p2);color:#fff}.btn-primary:hover{background:var(--p1)}
+.btn-green{background:#27ae60;color:#fff}.btn-green:hover{background:#229954}
+.btn-orange{background:#e67e22;color:#fff}.btn-orange:hover{background:#ca6f1e}
+.btn-ghost{background:none;border:1px solid var(--brd);color:var(--muted)}.btn-ghost:hover{background:var(--lt);color:var(--p1)}
+.btn-del{background:none;border:none;color:#ccc;padding:4px 7px;font-size:.93rem;cursor:pointer;border-radius:4px;transition:all .15s;line-height:1}
+.btn-del:hover{color:var(--red);background:#fdecea}
+.btn-add{width:100%;margin-top:8px;padding:7px;background:rgba(189,215,238,.3);border:1.5px dashed var(--p2);color:var(--p1);font-size:.83rem;border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;font-weight:500;transition:background .18s}
+.btn-add:hover{background:var(--ltr)}
+
+/* INLINE EDIT */
+[contenteditable]{outline:none;border-radius:3px;cursor:text}
+[contenteditable]:focus{background:#fffde7;box-shadow:0 0 0 2px #ffd740;padding:1px 4px}
+[contenteditable]:hover:not(:focus){background:rgba(214,228,240,.3)}
+.readonly-mode [contenteditable]{cursor:default;pointer-events:none}
+.readonly-mode [contenteditable]:hover{background:none}
+.readonly-mode .btn-del,.readonly-mode .btn-add,.readonly-mode .proc-head-btns,.readonly-mode .chk-add{display:none}
+
+/* CALENDAR BAR */
+.cal-bar{background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:11px 15px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.cal-nav{display:flex;align-items:center;gap:10px}
+.cal-date-display{font-size:.97rem;font-weight:700;color:var(--p1);min-width:155px;text-align:center}
+.cal-date-sub{font-size:.75rem;color:var(--muted);text-align:center}
+.cal-btn{background:var(--lt);border:1px solid var(--brd);color:var(--p1);padding:6px 11px;border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.8rem;font-weight:600;transition:background .18s}
+.cal-btn:hover{background:var(--ltr)}
+.cal-btn.today-btn{background:var(--p1);color:#fff;border-color:var(--p1)}
+.cal-btn.today-btn:hover{background:var(--p2)}
+
+/* PROGRESS BAR */
+.wd-summary{background:#fff;border:1px solid var(--lt);border-radius:var(--r);padding:9px 13px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.wd-prog-bar{flex:1;min-width:100px;height:7px;background:var(--lt);border-radius:4px;overflow:hidden}
+.wd-prog-fill{height:100%;background:var(--p2);transition:width .3s;border-radius:4px}
+.wd-prog-txt{font-size:.8rem;color:var(--muted);white-space:nowrap}
+.wd-note{flex:2;min-width:180px}
+.wd-note textarea{width:100%;padding:6px 10px;border:1px solid var(--brd);border-radius:6px;font-family:'Heebo',sans-serif;font-size:.8rem;resize:none;direction:rtl;color:var(--tx)}
+.wd-note textarea:focus{outline:none;border-color:var(--p2)}
+
+/* JOURNAL LAYOUT — two columns */
+.journal-layout{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
+@media(max-width:820px){.journal-layout{grid-template-columns:1fr}}
+
+/* WORKDAY tasks */
+.wd-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px;margin-bottom:6px;transition:border-color .2s,box-shadow .2s}
+.wd-item:hover{border-color:var(--p2);box-shadow:0 2px 8px rgba(46,117,182,.1)}
+.wd-item.done-task{opacity:.55;background:#f8fffd}
+.wd-check-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:2px}
+.wd-check{width:17px;height:17px;cursor:pointer;accent-color:var(--p2)}
+.wd-time{background:var(--p1);color:#fff;padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.wd-title{font-weight:700;color:var(--p1);margin-bottom:2px;font-size:.89rem}
+.wd-desc{font-size:.79rem;color:var(--muted);line-height:1.5}
+
+/* CHECKLIST CARDS (right column) */
+.chk-col{display:flex;flex-direction:column;gap:10px}
+.chk-card{background:#fff;border:1px solid var(--brd);border-radius:var(--r);overflow:hidden}
+.chk-head{padding:8px 12px;color:#fff;font-weight:700;font-size:.86rem;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.chk-morning{background:#1F4E79}.chk-evening{background:#2E75B6}.chk-weekly{background:#B45309}.chk-monthly{background:#5B21B6}.chk-tasks{background:#374151}
+.chk-reset{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;padding:2px 7px;border-radius:4px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.69rem}
+.chk-reset:hover{background:rgba(255,255,255,.35)}
+.chk-prog-bar{height:3px;background:rgba(255,255,255,.2)}
+.chk-prog-fill{height:100%;background:rgba(255,255,255,.7);transition:width .3s}
+.chk-items{padding:6px 10px}
+.chk-row{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:4px;margin-bottom:2px;transition:background .15s}
+.chk-row:hover{background:var(--ltr)}
+.chk-row input[type=checkbox]{width:14px;height:14px;cursor:pointer;accent-color:var(--p2);flex-shrink:0}
+.chk-row-text{flex:1;font-size:.82rem}
+.tasks-log-input{flex:1;border:none;border-bottom:1px solid #e5e7eb;outline:none;background:transparent;font-family:inherit;font-size:.83rem;direction:rtl;padding:2px 4px;color:#374151;width:100%}
+.tasks-log-input[readonly]{cursor:default;color:#aaa}
+.chk-row.done .chk-row-text{text-decoration:line-through;color:#aaa}
+.chk-foot{padding:2px 10px 8px}
+.chk-period-lbl{font-size:.67rem;color:var(--muted);padding:3px 10px 0;display:flex;align-items:center;justify-content:space-between}
+.chk-count{font-size:.72rem;font-weight:700}
+
+/* PROCEDURES */
+.proc-card{background:#fff;border:1px solid var(--brd);border-radius:var(--r);margin-bottom:14px;overflow:hidden}
+.proc-head{background:linear-gradient(90deg,var(--p1),var(--p2));color:#fff;padding:10px 15px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.proc-name{font-weight:700;font-size:.95rem;flex:1}
+.proc-head-btns{display:flex;gap:6px}
+.btn-proc{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);color:#fff;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.77rem;transition:background .18s}
+.btn-proc:hover{background:rgba(255,255,255,.35)}
+.btn-proc-del{background:rgba(231,76,60,.3)}.btn-proc-del:hover{background:rgba(231,76,60,.6)}
+.proc-steps{padding:11px 15px}
+.step-row{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:6px;margin-bottom:4px;border:1px solid transparent;transition:border-color .18s}
+.step-row:hover{border-color:var(--brd);background:#fafcff}
+.step-num{width:24px;height:24px;background:var(--p2);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.71rem;font-weight:700;flex-shrink:0}
+.step-text{flex:1;font-size:.86rem}
+
+/* PORTALS */
+.portals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:14px}
+.portal-card{background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:14px;transition:box-shadow .2s,border-color .2s}
+.portal-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.1);border-color:var(--p2)}
+.portal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.portal-name{font-weight:700;font-size:1rem;color:var(--p1)}
+.badge{font-size:.69rem;font-weight:700;padding:3px 9px;border-radius:20px}
+.bd-daily{background:#e8f5e9;color:#2e7d32}.bd-weekly{background:#fff8e1;color:#e65100}.bd-asneeded{background:#f3e5f5;color:#6a1b9a}
+.portal-url{font-size:.77rem;color:var(--p2);word-break:break-all;margin-bottom:6px;display:block}
+.portal-notes{font-size:.8rem;color:var(--muted);min-height:16px}
+.portal-bottom{display:flex;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap}
+.portal-bottom select{font-family:'Heebo',sans-serif;font-size:.78rem;padding:4px 7px;border:1px solid var(--brd);border-radius:5px;background:#fff;cursor:pointer;direction:rtl}
+.portal-bottom select:focus{outline:none;border-color:var(--p2)}
+.readonly-mode .portal-bottom select{pointer-events:none;opacity:.7}
+
+/* HISTORY */
+.hist-controls{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.hist-week-label{font-size:1rem;font-weight:700;color:var(--p1);min-width:200px;text-align:center}
+.hist-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:22px}
+@media(max-width:680px){.hist-grid{grid-template-columns:repeat(4,1fr)}}
+.hist-day{background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:9px 7px;text-align:center;cursor:pointer;transition:all .2s}
+.hist-day:hover{border-color:var(--p2);box-shadow:0 2px 8px rgba(46,117,182,.12)}
+.hist-day.hist-today{border-color:var(--p2);background:#f0f7ff}
+.hist-day.hist-future{opacity:.4;cursor:default}
+.hist-day.hist-selected{border-color:var(--p1);background:var(--lt)}
+.hist-dow{font-size:.7rem;color:var(--muted);margin-bottom:2px}
+.hist-date{font-size:.86rem;font-weight:700;color:var(--p1)}
+.hist-ring{margin:5px auto;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.73rem;font-weight:700;border:3px solid}
+.ring-empty{border-color:#ddd;color:#aaa}.ring-low{border-color:#f39c12;color:#f39c12;background:#fffbf0}
+.ring-mid{border-color:var(--p2);color:var(--p2);background:#f0f7ff}.ring-full{border-color:#27ae60;color:#27ae60;background:#f0fff4}
+.hist-note-preview{font-size:.68rem;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.hist-detail{background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:16px}
+.hist-detail-title{font-size:.95rem;font-weight:700;color:var(--p1);margin-bottom:12px}
+.hist-task-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:5px;margin-bottom:4px;background:#fafcff;border:1px solid var(--lt)}
+.hist-task-row.hist-done{background:#f0fff4;border-color:#b7ebc8}
+.hist-task-row .hist-task-status{color:#ddd;font-size:1rem;flex-shrink:0}
+.hist-task-row.hist-done .hist-task-status{color:#27ae60}
+.hist-task-name{flex:1;font-size:.85rem}
+.hist-task-time{font-size:.72rem;color:var(--muted);background:var(--lt);padding:2px 7px;border-radius:4px}
+.hist-note-box{background:var(--acc);border-radius:6px;padding:9px 12px;margin-top:10px;font-size:.84rem}
+.hist-stat-row{display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.hist-stat{background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:12px 18px;flex:1;min-width:130px;text-align:center}
+.hist-stat-num{font-size:1.5rem;font-weight:700;color:var(--p1)}
+.hist-stat-lbl{font-size:.76rem;color:var(--muted)}
+
+/* FIREBASE */
+.fb-card{background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.fb-card h3{font-size:.95rem;color:var(--p1);font-weight:700;margin-bottom:12px}
+.fb-status-bar{background:#f0f7ff;border:1px solid var(--lt);border-radius:6px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;font-size:.84rem}
+.fb-instructions{background:#fffde7;border:1px solid #ffe082;border-radius:6px;padding:12px 14px;margin-bottom:14px;font-size:.83rem;line-height:1.7}
+.fb-instructions ol{padding-right:18px;margin-top:4px}
+.fb-instructions a{color:var(--p2)}
+.fb-instructions code{background:#f5f5f5;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:.85em}
+.fb-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:560px){.fb-grid{grid-template-columns:1fr}}
+
+/* USERS TABLE */
+.users-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.86rem}
+.users-table th,.users-table td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--lt)}
+.users-table th{background:var(--lt);color:var(--p1);font-weight:700}
+.users-table tr:hover td{background:#fafcff}
+.role-badge{font-size:.69rem;font-weight:700;padding:2px 9px;border-radius:10px}
+.role-admin{background:#fff3cd;color:#856404}.role-user{background:#d1ecf1;color:#0c5460}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:12px;padding:24px 26px;width:92%;max-width:490px;direction:rtl;box-shadow:0 12px 40px rgba(0,0,0,.22);max-height:90vh;overflow-y:auto}
+.modal-xl{max-width:680px}
+.modal-title{font-size:1.05rem;font-weight:700;color:var(--p1);margin-bottom:14px}
+.form-group{margin-bottom:11px}
+.form-label{display:block;font-size:.81rem;font-weight:600;margin-bottom:4px}
+.form-ctrl{width:100%;padding:8px 11px;border:1px solid var(--brd);border-radius:6px;font-family:'Heebo',sans-serif;font-size:.88rem;direction:rtl;color:var(--tx)}
+.form-ctrl:focus{outline:none;border-color:var(--p2);box-shadow:0 0 0 2px rgba(46,117,182,.12)}
+textarea.form-ctrl{min-height:80px;resize:vertical}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.btn-cancel{background:#f0f0f0;color:var(--tx)}.btn-cancel:hover{background:#e0e0e0}
+.pw-err{color:var(--red);font-size:.8rem;margin-top:4px;min-height:16px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:#2c3e50;color:#fff;padding:10px 24px;border-radius:8px;font-size:.86rem;z-index:9999;opacity:0;pointer-events:none;transition:opacity .28s,transform .28s}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#import-input{display:none}
+
+/* PRINT */
+@media print{
+  .header,.tabs-bar,.cal-bar .cal-export-btns,.btn-add,.btn-del,.wd-check,
+  .modal,.overlay,.toast,.login-wrap,nav,.chk-reset,.chk-foot{display:none!important}
+  body{background:#fff}
+  .main{padding:0;max-width:100%}
+  .journal-layout{grid-template-columns:1fr 1fr}
+  .wd-item{border:1px solid #ccc;break-inside:avoid}
+  .wd-item.done-task{opacity:1;background:#f0fff4}
+  .chk-row.done .chk-row-text{text-decoration:line-through}
+  #print-header{display:block!important}
+}
+#print-header{display:none;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #1F4E79}
+#print-header h2{color:#1F4E79;font-size:1.1rem}
+#print-header p{font-size:.85rem;color:#666}
+
+/* ══ ATTENDANCE / CLOCK ══ */
+.att-month-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.att-month-label{font-size:1rem;font-weight:700;color:var(--p1);min-width:160px;text-align:center}
+.att-table-wrap{overflow-x:auto}
+.att-table{width:100%;border-collapse:collapse;font-size:.86rem}
+.att-table th,.att-table td{padding:9px 11px;text-align:right;border-bottom:1px solid var(--lt)}
+.att-table th{background:var(--lt);color:var(--p1);font-weight:700;white-space:nowrap}
+.att-table tr:hover td{background:#fafcff}
+.att-total-row td{background:var(--ltr);font-weight:700;color:var(--p1)}
+.att-ot-row td{background:#FFF2CC;color:#7a5800;font-weight:700}
+.att-summary{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.att-sum-card{background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:12px 18px;flex:1;min-width:130px;text-align:center}
+.att-sum-num{font-size:1.5rem;font-weight:700;color:var(--p1)}
+.att-sum-lbl{font-size:.76rem;color:var(--muted)}
+.att-sum-ot .att-sum-num{color:#e67e22}
+.badge-done{background:#e8f5e9;color:#2e7d32;padding:2px 9px;border-radius:10px;font-size:.75rem;font-weight:700}
+.badge-partial{background:#fff8e1;color:#e65100;padding:2px 9px;border-radius:10px;font-size:.75rem;font-weight:700}
+.badge-off{background:#f5f5f5;color:#999;padding:2px 9px;border-radius:10px;font-size:.75rem}
+.clock-status-wrap{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:5px 11px}
+.clock-status-dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0}
+.clock-status-dot.clocked-in{background:#4ade80;animation:pulse .8s infinite}
+.clock-status-dot.clocked-done{background:#4ade80}
+.clock-time{font-size:.78rem;color:rgba(255,255,255,.9);white-space:nowrap}
+.btn-clock-in{background:#27ae60;border:none;color:#fff;padding:7px 15px;border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;transition:background .2s}
+.btn-clock-in:hover{background:#229954}
+.btn-clock-out{background:#e74c3c;border:none;color:#fff;padding:7px 15px;border-radius:7px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.85rem;font-weight:700;transition:background .2s}
+.btn-clock-out:hover{background:#c0392b}
+@media print{.att-month-nav,.btn-clock-in,.btn-clock-out,.clock-status-wrap{display:none!important}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="data:image/jpeg;base64,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" class="login-logo-img" alt="שיראל" style="height:80px;width:auto;margin-bottom:4px">
+      <div class="ltitle">מערכת ניהול | שיראל</div>
+      <div class="lsub">שיראל סוכנות לביטוח פנסיוני (2020) בע"מ</div>
+    </div>
+    <label>אימייל</label>
+    <input type="email" id="li-email" placeholder="your@email.com" autocomplete="email">
+    <label>סיסמה</label>
+    <input type="password" id="li-pass" placeholder="••••••••" autocomplete="current-password">
+    <label class="login-remember">
+      <input type="checkbox" id="li-remember"> זכור אותי במחשב זה
+    </label>
+    <div class="login-err" id="li-err"></div>
+    <button class="btn-login" onclick="doLogin()">כניסה</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo-wrap" style="display:flex;align-items:center;gap:10px">
+      <img src="data:image/jpeg;base64,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" class="header-logo-img" alt="שיראל" style="height:42px;width:auto">
+      <div>
+        <div class="hlogo" id="hdr-title">מערכת ניהול</div>
+        <div class="hsub">שיראל סוכנות לביטוח פנסיוני (2020) בע"מ</div>
+      </div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="sync-wrap" id="sync-wrap" style="display:none">
+      <div class="sync-dot sync-off" id="sync-dot"></div>
+      <span id="sync-txt">לא מחובר</span>
+    </div>
+    <div class="user-pill">
+      <span id="hdr-name">—</span>
+      <span id="hdr-role-badge"></span>
+    </div>
+    <button class="btn-hdr" id="btn-users" onclick="openUsersModal()" style="display:none">👥 משתמשים</button>
+    <button class="btn-hdr" id="btn-firebase" onclick="switchTab('firebase',document.querySelector('[data-tab=firebase]'))" style="display:none">☁ ענן</button>
+    <button class="btn-hdr" onclick="openChangePw()">🔑 סיסמה</button>
+    <button class="btn-hdr" id="btn-export" onclick="exportData()" style="display:none">⬇ גיבוי</button>
+    <button class="btn-hdr" id="btn-import" onclick="document.getElementById('import-input').click()" style="display:none">⬆ ייבוא</button>
+    <input type="file" id="import-input" accept=".json" onchange="importData(event)">
+    <div class="clock-status-wrap" id="clock-status-wrap" style="display:none">
+      <div class="clock-status-dot" id="clock-status-dot"></div>
+      <span class="clock-time" id="clock-status-time"></span>
+    </div>
+    <button class="btn-clock-in" id="btn-clock-in" onclick="doClock('in')" style="display:none">⏱ כניסה</button>
+    <button class="btn-clock-out" id="btn-clock-out" onclick="doClock('out')" style="display:none">⏹ יציאה</button>
+        <button class="btn-hdr" onclick="doLogout()">יציאה</button>
+  </div>
+</header>
+
+<nav class="tabs-bar">
+  <div class="tab active" data-tab="journal" onclick="switchTab('journal',this)">📅 יומן</div>
+  <div class="tab" data-tab="procedures" onclick="switchTab('procedures',this)">📋 נהלי עבודה</div>
+  <div class="tab" data-tab="portals" onclick="switchTab('portals',this)">🌐 פורטלים</div>
+  <div class="tab" data-tab="history" onclick="switchTab('history',this)">📊 היסטוריה</div>
+  <div class="tab" data-tab="attendance" onclick="switchTab('attendance',this)">⏱ שעון נוכחות</div>
+  <div class="tab" data-tab="firebase" onclick="switchTab('firebase',this)" id="tab-firebase-btn" style="display:none">☁ סנכרון</div>
+</nav>
+
+<main class="main">
+
+  <!-- ═══ JOURNAL TAB ═══ -->
+  <section id="tab-journal" class="tab-panel active">
+    <div id="print-header">
+      <h2 id="ph-title">יומן עבודה</h2>
+      <p id="ph-sub"></p>
+    </div>
+
+    <!-- Admin journal user selector -->
+    <div id="journal-admin-bar" style="display:none;align-items:center;gap:12px;margin-bottom:14px;background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:10px 16px">
+      <span style="font-weight:700;color:var(--p1);white-space:nowrap">📋 יומן של:</span>
+      <select id="journal-user-sel" class="form-ctrl" style="width:auto;min-width:180px" onchange="journalChangeUser(this.value)"></select>
+    </div>
+
+    <!-- Calendar bar -->
+    <div class="cal-bar">
+      <div class="cal-nav">
+        <button class="cal-btn" onclick="calMove(-1)">→ קודם</button>
+        <div>
+          <div class="cal-date-display" id="cal-date-display">—</div>
+          <div class="cal-date-sub" id="cal-date-sub">—</div>
+        </div>
+        <button class="cal-btn" onclick="calMove(1)">הבא ←</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="cal-btn today-btn" onclick="calToday()">היום</button>
+        <div class="cal-export-btns" style="display:flex;gap:7px">
+          <button class="btn btn-green" onclick="exportDayExcel()">📊 Excel</button>
+          <button class="btn btn-orange" onclick="window.print()">🖨 PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress + note -->
+    <div class="wd-summary">
+      <div class="wd-prog-bar"><div class="wd-prog-fill" id="wd-prog-fill" style="width:0%"></div></div>
+      <div class="wd-prog-txt" id="wd-prog-txt">⏳ טוען...</div>
+      <div class="wd-note">
+        <textarea id="wd-note-area" rows="2" placeholder="הערות ליום..." oninput="saveWdNote(this.value)"></textarea>
+      </div>
+    </div>
+
+    <!-- Two-column layout -->
+    <div class="journal-layout">
+
+      <!-- LEFT: workday tasks -->
+      <div id="wd-col">
+        <div class="section-sub">משימות יום עבודה</div>
+        <div id="wd-list"></div>
+        <button class="btn-add" id="wd-btn-add" onclick="openModal('addWorkday')">+ הוסף משימה לתבנית</button>
+      </div>
+
+      <!-- RIGHT: checklists -->
+      <div class="chk-col" id="chk-col">
+        <!-- rendered by renderChecklists() -->
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══ PROCEDURES ═══ -->
+  <section id="tab-procedures" class="tab-panel">
+    <div id="proc-admin-bar" style="display:none;align-items:center;gap:12px;margin-bottom:14px;background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:10px 16px">
+      <span style="font-weight:700;color:var(--p1);white-space:nowrap">📋 נהלי עבודה של:</span>
+      <select id="proc-user-sel" class="form-ctrl" style="width:auto;min-width:180px" onchange="contentChangeUser(this.value)"></select>
+    </div>
+    <div class="sec-title">📋 נהלי עבודה</div>
+    <div id="proc-list"></div>
+    <button class="btn-add" id="proc-btn-add" onclick="openModal('addProcedure')">+ הוסף נוהל חדש</button>
+  </section>
+
+  <!-- ═══ PORTALS ═══ -->
+  <section id="tab-portals" class="tab-panel">
+    <div id="port-admin-bar" style="display:none;align-items:center;gap:12px;margin-bottom:14px;background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:10px 16px">
+      <span style="font-weight:700;color:var(--p1);white-space:nowrap">🌐 פורטלים של:</span>
+      <select id="port-user-sel" class="form-ctrl" style="width:auto;min-width:180px" onchange="contentChangeUser(this.value)"></select>
+    </div>
+    <div class="sec-title">🌐 פורטלי חברות ביטוח</div>
+    <div id="portals-grid" class="portals-grid"></div>
+    <button class="btn-add" id="portal-btn-add" onclick="openModal('addPortal')">+ הוסף פורטל</button>
+  </section>
+
+  <!-- ═══ HISTORY ═══ -->
+  <section id="tab-history" class="tab-panel">
+    <div class="sec-title">📊 היסטוריה שבועית</div>
+    <div id="hist-stat-row" class="hist-stat-row"></div>
+    <div class="hist-controls">
+      <button class="cal-btn" onclick="histMove(-1)">→ שבוע קודם</button>
+      <div class="hist-week-label" id="hist-week-label">—</div>
+      <button class="cal-btn" onclick="histMove(1)">שבוע הבא ←</button>
+      <button class="cal-btn today-btn" onclick="histNow()">השבוע</button>
+      <button class="btn btn-green" style="margin-right:auto" onclick="exportHistExcel()">📊 ייצוא שבוע</button>
+    </div>
+    <div id="hist-grid" class="hist-grid"></div>
+    <div id="hist-detail"></div>
+  </section>
+
+  <!-- ═══ FIREBASE ═══ -->
+  <section id="tab-firebase" class="tab-panel">
+    <div class="sec-title">☁ הגדרות סנכרון ענן</div>
+    <div class="fb-card">
+      <h3>📡 מצב סנכרון</h3>
+      <div class="fb-status-bar" id="fb-status-bar">
+        <div class="sync-dot sync-off" id="fb-dot"></div>
+        <span id="fb-status-txt">Firebase לא מוגדר</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="fbConnect()" id="fb-btn-connect">🔌 התחבר</button>
+        <button class="btn btn-ghost" onclick="fbDisconnect()" id="fb-btn-disc" style="display:none">🔴 נתק</button>
+        <button class="btn btn-green" onclick="fbPushNow()" id="fb-btn-push" style="display:none">⬆ דחף נתונים</button>
+      </div>
+    </div>
+    <div class="fb-card">
+      <h3>🛠 הגדרות Firebase</h3>
+      <div class="fb-instructions">
+        <strong>הוראות הגדרה ראשונית (חינם לחלוטין):</strong>
+        <ol>
+          <li>כנס ל-<a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a></li>
+          <li>Add project → שם → אשר</li>
+          <li>Build → Realtime Database → Create Database → אירופה → <strong>test mode</strong></li>
+          <li>⚙ Project Settings → General → Your apps → <code>&lt;/&gt;</code> → Register app</li>
+          <li>העתק <code>apiKey</code>, <code>databaseURL</code>, <code>projectId</code> למטה</li>
+          <li>בחר <strong>מפתח סוכנות</strong> ייחודי (למשל: <code>shirel2024</code>)</li>
+        </ol>
+      </div>
+      <div class="fb-grid">
+        <div class="form-group"><label class="form-label">API Key</label><input id="fb-apikey" class="form-ctrl" placeholder="AIzaSy..." style="direction:ltr"></div>
+        <div class="form-group"><label class="form-label">Database URL</label><input id="fb-dburl" class="form-ctrl" placeholder="https://my-project-rtdb.firebaseio.com" style="direction:ltr"></div>
+        <div class="form-group"><label class="form-label">Project ID</label><input id="fb-projid" class="form-ctrl" placeholder="my-project-12345" style="direction:ltr"></div>
+        <div class="form-group"><label class="form-label">מפתח סוכנות</label><input id="fb-wkey" class="form-ctrl" placeholder="shirel2024"></div>
+      </div>
+      <button class="btn btn-primary" onclick="fbSaveConfig()">💾 שמור</button>
+      <button class="btn btn-ghost" onclick="fbClearConfig()">🗑 מחק</button>
+    </div>
+  </section>
+
+  <!-- ═══ ATTENDANCE ═══ -->
+  <section id="tab-attendance" class="tab-panel">
+    <div class="sec-title">⏱ שעון נוכחות חודשי</div>
+    <!-- Non-admin: clock in/out panel -->
+    <div id="att-clock-panel" style="display:none;margin-bottom:16px;background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:14px 18px;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="font-weight:700;color:var(--p1)">שעות היום:</div>
+      <div class="clock-status-dot" id="att-clock-dot"></div>
+      <span id="att-clock-lbl" style="font-size:.95rem;color:#555"></span>
+      <button class="btn-clock-in" id="att-btn-in" onclick="doClock('in')" style="display:none">⏱ כניסה</button>
+      <button class="btn-clock-out" id="att-btn-out" onclick="doClock('out')" style="display:none">⏹ יציאה</button>
+    </div>
+    <!-- Admin: user selector -->
+    <div id="att-admin-bar" style="display:none;align-items:center;gap:12px;margin-bottom:14px;background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:10px 16px">
+      <span style="font-weight:700;color:var(--p1);white-space:nowrap">📋 צפייה בנוכחות:</span>
+      <select id="att-user-sel" class="form-ctrl" style="width:auto;min-width:180px" onchange="attChangeUser(this.value)"></select>
+    </div>
+    <div class="att-month-nav">
+      <button class="cal-btn" onclick="attMove(-1)">→ חודש קודם</button>
+      <div class="att-month-label" id="att-month-label">—</div>
+      <button class="cal-btn" onclick="attMove(1)">חודש הבא ←</button>
+      <button class="cal-btn today-btn" onclick="attNow()">החודש</button>
+      <div style="margin-right:auto;display:flex;gap:7px;flex-wrap:wrap">
+        <button class="btn btn-green" onclick="exportAttExcel()">📊 ייצוא Excel</button>
+        <button class="btn btn-orange" onclick="window.print()">🖨 PDF</button>
+      </div>
+    </div>
+    <div class="att-summary" id="att-summary"></div>
+    <div class="att-table-wrap">
+      <table class="att-table">
+        <thead><tr>
+          <th>תאריך</th><th>יום</th><th>שעת כניסה</th><th>שעת יציאה</th>
+          <th>סה״כ שעות</th><th>סטטוס</th>
+          <th id="att-th-edit" style="display:none"></th>
+        </tr></thead>
+        <tbody id="att-tbody"></tbody>
+        <tfoot id="att-tfoot"></tfoot>
+      </table>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<div id="modal-overlay" class="overlay" style="display:none" onclick="overlayClick(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-title" id="modal-title">—</div>
+    <div id="modal-body"></div>
+    <div class="modal-actions" id="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal()">ביטול</button>
+      <button class="btn btn-primary" onclick="saveModal()">שמור</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════ CONSTANTS ══════════ */
+const ADMIN_EMAIL='eli@shirel-ins.co.il';
+const DAYS_HE=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+const MONTHS_HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+const DB_KEY='ref_db_v5';
+
+/* ══════════ DEFAULT DATA ══════════ */
+const DEF_WD=[
+  {id:1,time:"8:00–8:30",  title:"פתיחת יום + בדיקת מיילים",       desc:"עבור על המיילים שהגיעו מאז אתמול. סמן מה דחוף, מה ממתין, מה לידיעה בלבד."},
+  {id:2,time:"8:30–9:15",  title:"כניסה לפורטלים של חברות הביטוח", desc:"בדיקה יומית: תנועות לקוחות, הודעות מחברות, שינויים בפוליסות."},
+  {id:3,time:"9:15–10:00", title:"עדכון תיקי לקוחות",               desc:"כל מידע שהגיע — מעדכנים ב-CRM מיד."},
+  {id:4,time:"10:00–11:00",title:"מענה ללקוחות + קביעת פגישות",     desc:"מענה לטלפונים ומיילים. כל פגישה — שולחים אישור."},
+  {id:5,time:"11:00–12:30",title:"טיפול במסמכים ותיקים",            desc:"קליטת מסמכים, הכנת טפסים, סריקה ושמירה."},
+  {id:6,time:"13:30–14:30",title:"מעקב גבייה ותשלומים",             desc:"בדיקת עמלות, מעקב חובות, תזכורות ללקוחות."},
+  {id:7,time:"14:30–15:30",title:"משימות שוטפות + תיאום עם אלי",    desc:"דיווח לאלי על מה שהיה, הכנת רשימה למחר."},
+  {id:8,time:"15:30–16:00",title:"סגירת יום",                       desc:"וידוא מסמכים נשמרו, תיבת מייל מסודרת, יומן מעודכן."}
+];
+const DEF_PROC=[
+  {id:1,name:"פתיחת יום",steps:[
+    "כנס לתיבת המייל",
+    "עבור על כל ההודעות מאז אתמול",
+    "סמן כל מייל: דחוף / ממתין / לידיעה בלבד",
+    "רשום את הדחופים ברשימת המשימות היומית",
+    "פתח את היומן — בדוק פגישות ומשימות להיום",
+    "הכן רשימת 3 משימות עיקריות ליום"
+  ]},
+  {id:2,name:"כניסה לפורטלים של חברות הביטוח",steps:[
+    "כנס לפורטל מגדל — בדוק תנועות, הודעות ושינויי פוליסות",
+    "כנס לפורטל מנורה מבטחים — בדוק הודעות ושינויים",
+    "כנס לפורטל הפניקס — בדוק פוליסות ותנועות",
+    "כנס לפורטל הראל — בדוק עמלות ועדכונים",
+    "בדוק פורטלים נוספים (כלל, מגן, פסגות, מיטב)",
+    "רשום כל שינוי חשוב ב-CRM עם תאריך"
+  ]},
+  {id:3,name:"עדכון תיקי לקוחות ב-CRM",steps:[
+    "פתח את ה-CRM",
+    "חפש כל לקוח שהגיע עליו מידע חדש",
+    "הוסף הערה עם תאריך ותוכן הפנייה",
+    "עדכן סטטוס התיק אם השתנה",
+    "שמור שינויים",
+    "בדוק אם נדרשת פנייה חזרה ללקוח — אם כן, הוסף למשימות"
+  ]},
+  {id:4,name:"מענה ללקוחות וקביעת פגישות",steps:[
+    "עבור על כל הפניות שלא נענו (מייל + טלפון)",
+    "מיין: מה ניתן לטפל עצמאית, מה צריך אלי",
+    "ענה לכל מייל — גם אם רק לאשר קבלה",
+    "קבע פגישות בהתאם לזמינות — עדכן יומן",
+    "שלח אישור פגישה ותזכורת ללקוח",
+    "עדכן לקוח לגבי פניות שהועברו לאלי"
+  ]},
+  {id:5,name:"טיפול במסמכים ותיקים",steps:[
+    "אסוף את כל המסמכים שהגיעו היום",
+    "סרוק מסמכים פיזיים",
+    "שמור בתיקייה הממוינת לפי שם לקוח",
+    "עדכן ב-CRM שהמסמך התקבל",
+    "בדוק אם חסרים מסמכים — פנה ללקוח",
+    "הכן טפסים שידרשו בימים הקרובים"
+  ]},
+  {id:6,name:"מעקב גבייה ותשלומים",steps:[
+    "פתח דוח עמלות מהפורטלים",
+    "בדוק שכל העמלות הצפויות הגיעו",
+    "סמן אי-התאמות לדיון עם אלי",
+    "בדוק חובות מלקוחות — שלח תזכורת אם נדרש",
+    "עדכן טבלת עמלות ב-Excel"
+  ]},
+  {id:7,name:"סגירת יום",steps:[
+    "וודא שכל מסמכי היום נשמרו ומסורקים",
+    "סדר תיבת מייל — אפס הודעות לא נענו",
+    "ודא שכל לקוח שפנה קיבל מענה",
+    "עדכן CRM עם כל מה שהיה",
+    "הכן רשימת משימות לימים הקרובים",
+    "שלח דיווח קצר לאלי על הנעשה",
+    "עדכן יומן לפגישות מחר"
+  ]}
+];
+
+const DEF_PORT=[
+  {id:1,name:"מגדל",url:"https://portal.migdal.co.il",freq:"יומי",notes:"תנועות, עדכוני פוליסות, עמלות"},
+  {id:2,name:"מנורה מבטחים",url:"https://www.menora.co.il",freq:"יומי",notes:"הודעות, שינויים, דוחות"},
+  {id:3,name:"הפניקס",url:"https://www.phoenix.co.il",freq:"יומי",notes:"פוליסות, תנועות, עמלות"},
+  {id:4,name:"מיטב",url:"https://www.meitav.co.il",freq:"שבועי",notes:"יתרות, מסלולי השקעה, בקשות"},
+  {id:5,name:"הלמן אלדובי",url:"https://www.helman.co.il",freq:"שבועי",notes:"יתרות, בקשות ממתינות"},
+  {id:6,name:"כלל ביטוח",url:"https://www.clal.co.il",freq:"שבועי",notes:"גמל, השתלמות, יתרות"},
+  {id:7,name:"mygemel",url:"https://www.mygemel.net",freq:"לפי צורך",notes:"תשואות, דמי ניהול, השוואות"}
+];
+/* Checklists: morning+evening are per-day (stored in dailyLog[date]);
+   weekly+monthly are per-period (stored in chkState) */
+const DEF_CHK={
+  morning:{title:"☀️ פתיחת יום",cls:"chk-morning",scope:"daily",items:[
+    {id:1,text:"בדיקת מיילים — סימון דחוף / ממתין / לידיעה"},
+    {id:2,text:"כניסה לפורטלי חברות הביטוח — תנועות ועדכונים"},
+    {id:3,text:"רישום שינויים מהפורטלים ב-CRM"},
+    {id:4,text:"בדיקת יומן פגישות להיום"},
+    {id:5,text:"הכנת רשימת 3 משימות עיקריות ליום"}
+  ]},
+  portals:{title:"🌐 בדיקת פורטלים",cls:"chk-portals",scope:"daily",items:[
+    {id:1,text:"מגדל — תנועות, הודעות, שינויי פוליסות"},
+    {id:2,text:"מנורה מבטחים — הודעות ושינויים"},
+    {id:3,text:"הפניקס — פוליסות ותנועות"},
+    {id:4,text:"הראל — עמלות ועדכונים"},
+    {id:5,text:"כלל / מגן — בדיקה"},
+    {id:6,text:"פסגות / מיטב דש — קרנות"}
+  ]},
+  documents:{title:"📁 מסמכים ותיקים",cls:"chk-documents",scope:"daily",items:[
+    {id:1,text:"קבלת מסמכים חדשים מלקוחות"},
+    {id:2,text:"סריקה ושמירה בתיקייה הנכונה"},
+    {id:3,text:"עדכון CRM — מסמכים שהתקבלו"},
+    {id:4,text:"הכנת טפסים נדרשים"},
+    {id:5,text:"שליחת אישורי קבלה ללקוחות"}
+  ]},
+  evening:{title:"🌙 סגירת יום",cls:"chk-evening",scope:"daily",items:[
+    {id:1,text:"כל מסמכי היום נשמרו ומסורקים"},
+    {id:2,text:"תיבת מייל מסודרת — אפס הודעות לא נענו"},
+    {id:3,text:"כל לקוח שפנה קיבל מענה"},
+    {id:4,text:"CRM מעודכן לגבי כל פנייה ושינוי"},
+    {id:5,text:"פגישות מחר מאושרות ונשלחו תזכורות"},
+    {id:6,text:"3 משימות עיקריות למחר רשומות"},
+    {id:7,text:"דיווח קצר לאלי על הנעשה"}
+  ]},
+  weekly:{title:"📅 שבועי",cls:"chk-weekly",scope:"weekly",items:[
+    {id:1,text:"ריכוז עמלות מכל הפורטלים"},
+    {id:2,text:"מעקב חובות ותשלומים ממתינים"},
+    {id:3,text:"תזכורת ללקוחות שלא הגיבו השבוע"},
+    {id:4,text:"סידור תיקיות ומסמכים מהשבוע"},
+    {id:5,text:"בדיקת פגישות לשבוע הבא"},
+    {id:6,text:"דיווח שבועי לאלי"}
+  ]},
+  monthly:{title:"📆 חודשי",cls:"chk-monthly",scope:"monthly",items:[
+    {id:1,text:"ריכוז עמלות החודש ב-Excel"},
+    {id:2,text:"ארכוב מסמכים ישנים"},
+    {id:3,text:"בדיקת לקוחות ללא פנייה החודש"},
+    {id:4,text:"עדכון רשימת לקוחות פעילים"},
+    {id:5,text:"הכנת דו\"ח חודשי לאלי"}
+  ]}
+};
+
+/* ══════════ STATE ══════════ */
+let DB={},CU=null,isAdmin=false,calDate=todayStr(),histWeekOffset=0,modalMode=null,histSelDate=null;
+let fbApp=null,fbRef=null,fbSyncing=false;
+
+/* ══════════ UTILS ══════════ */
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function uid(){return Date.now()+Math.floor(Math.random()*1000)}
+function todayStr(){return new Date().toISOString().slice(0,10)}
+function isoWeek(d){const dt=new Date(d+'T12:00:00');dt.setDate(dt.getDate()+3-(dt.getDay()+6)%7);const wk=new Date(dt.getFullYear(),0,4);return dt.getFullYear()+'-W'+String(1+Math.round(((dt-wk)/86400000-3+(wk.getDay()+6)%7)/7)).padStart(2,'0')}
+function isoMonth(d){return d.slice(0,7)}
+function addDays(iso,n){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+function startOfWeek(iso){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()-d.getDay());return d.toISOString().slice(0,10)}
+function heDateStr(iso){const[y,m,day]=iso.split('-').map(Number);const dow=new Date(iso+'T12:00:00').getDay();return`יום ${DAYS_HE[dow]}, ${day} ב${MONTHS_HE[m-1]} ${y}`}
+function hashPw(pw){return btoa(encodeURIComponent(pw+'_shirel_2024'))}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600)}
+function focusNew(el){if(!el)return;el.focus();const r=document.createRange();r.selectNodeContents(el);const s=window.getSelection();s.removeAllRanges();s.addRange(r)}
+
+/* ══════════ DB ══════════ */
+function initDB(){
+  const raw=localStorage.getItem(DB_KEY);
+  if(raw){try{DB=JSON.parse(raw);}catch{DB={};}}
+  if(!DB.users){
+    DB={
+      users:[{id:'admin',name:'אלי',email:ADMIN_EMAIL,pw:hashPw('admin123'),role:'admin'}],
+      workday:JSON.parse(JSON.stringify(DEF_WD)),
+      procedures:JSON.parse(JSON.stringify(DEF_PROC)),
+      portals:JSON.parse(JSON.stringify(DEF_PORT)),
+      checklistTemplates:JSON.parse(JSON.stringify(DEF_CHK)),
+      dailyLog:{},chkState:{}
+    };
+  }
+  if(!DB.attendance)DB.attendance={};
+  if(!DB.userContent)DB.userContent={};
+  // ══ CONTENT DEFAULTS: fallback only — שמור מה שיש, השלם רק אם חסר
+  if(!DB.procedures||!DB.procedures.length)DB.procedures=JSON.parse(JSON.stringify(DEF_PROC));
+  if(!DB.portals||!DB.portals.length)DB.portals=JSON.parse(JSON.stringify(DEF_PORT));
+  if(!DB.workday||!DB.workday.length)DB.workday=JSON.parse(JSON.stringify(DEF_WD));
+  if(!hasValidChk(DB.checklistTemplates))DB.checklistTemplates=JSON.parse(JSON.stringify(DEF_CHK));
+  // Migrate admin's dailyLog to userContent if needed
+  {const adminUser=DB.users&&DB.users.find(u=>u.role==='admin'||u.email===ADMIN_EMAIL);
+   if(adminUser){
+     if(!DB.userContent[adminUser.id])DB.userContent[adminUser.id]={dailyLog:{}};
+     const auc=DB.userContent[adminUser.id];
+     if(!auc.dailyLog)auc.dailyLog={};
+     if(DB.dailyLog&&Object.keys(DB.dailyLog).length&&!Object.keys(auc.dailyLog).length)
+       auc.dailyLog=JSON.parse(JSON.stringify(DB.dailyLog));
+   }
+  }
+  ensureAdmin();saveDB();
+}
+function ensureAdmin(){if(!DB.users.find(u=>u.email===ADMIN_EMAIL))DB.users.push({id:'admin',name:'אלי',email:ADMIN_EMAIL,pw:hashPw('admin123'),role:'admin'});}
+function restoreDefaults(){
+  // Step 1: pause Firebase listener to prevent it from overwriting
+  fbSyncing=true;
+  // Step 2: force-set all content from hardcoded defaults
+  DB.procedures=JSON.parse(JSON.stringify(DEF_PROC));
+  DB.portals=JSON.parse(JSON.stringify(DEF_PORT));
+  DB.workday=JSON.parse(JSON.stringify(DEF_WD));
+  DB.checklistTemplates=JSON.parse(JSON.stringify(DEF_CHK));
+  // Step 3: save to localStorage immediately
+  localStorage.setItem(DB_KEY,JSON.stringify(DB));
+  // Step 4: render everything right now
+  renderAll();
+  renderChecklists();
+  toast('✔ תוכן שוחזר — שולח לענן...');
+  // Step 5: push to Firebase, then re-enable listener
+  if(fbRef){
+    fbRef.set(JSON.parse(JSON.stringify(DB)))
+      .then(()=>{fbSyncing=false;toast('✔ נשמר בענן');})
+      .catch(()=>{fbSyncing=false;toast('✔ נשמר מקומית');});
+  } else {
+    fbSyncing=false;
+  }
+}
+function saveDB(){localStorage.setItem(DB_KEY,JSON.stringify(DB));fbPush();}
+
+/* ══════════ CHECKLIST STATE (per-day + per-period) ══════════ */
+function getContentUID(){return(isAdmin&&contentViewUserId)?contentViewUserId:CU?.id;}
+function getJournalUID(){return getContentUID();}
+function getUCDB(){return DB;}
+function ensureUserContent(uid){if(!DB.userContent)DB.userContent={};if(!DB.userContent[uid])DB.userContent[uid]={dailyLog:{}};if(!DB.userContent[uid].dailyLog)DB.userContent[uid].dailyLog={};return DB.userContent[uid];}
+function getJournalDailyLog(uid){return ensureUserContent(uid).dailyLog;}
+function contentChangeUser(uid2){
+  contentViewUserId=uid2;
+  renderJournal();renderWorkday();renderChecklists();
+  const el=document.getElementById('journal-user-sel');if(el&&uid2)el.value=uid2;
+}
+function journalChangeUser(uid2){contentChangeUser(uid2);}
+function getDayLog(d){const uid=getJournalUID();let logDay;if(!uid){if(!DB.dailyLog)DB.dailyLog={};if(!DB.dailyLog[d])DB.dailyLog[d]={checked:[],note:'',chkMorning:[],chkEvening:[]};logDay=DB.dailyLog[d];}else{const dl=getJournalDailyLog(uid);if(!dl[d])dl[d]={checked:[],note:'',chkMorning:[],chkEvening:[]};logDay=dl[d];}if(!Array.isArray(logDay.checked))logDay.checked=[];if(!Array.isArray(logDay.chkMorning))logDay.chkMorning=[];if(!Array.isArray(logDay.chkEvening))logDay.chkEvening=[];if(!Array.isArray(logDay.tasksLog)||logDay.tasksLog.length<10){const ex=Array.isArray(logDay.tasksLog)?logDay.tasksLog:[];logDay.tasksLog=[...ex,...Array(Math.max(0,10-ex.length)).fill('')];}return logDay;}
+
+// For daily checklists: stored directly in dailyLog[date]
+function getDailyChk(date,key){
+  const log=getDayLog(date);
+  const field='chk'+key.charAt(0).toUpperCase()+key.slice(1); // chkMorning / chkEvening
+  if(!log[field])log[field]=[];
+  return log[field];
+}
+// For weekly/monthly: stored in chkState keyed by period
+function getPeriodChk(key){
+  const tpl=DB.checklistTemplates[key];
+  let pk;
+  if(tpl.scope==='weekly') pk=(CU?CU.id:'g')+'_weekly_'+isoWeek(calDate);
+  else pk=(CU?CU.id:'g')+'_monthly_'+isoMonth(calDate);
+  if(!DB.chkState[pk])DB.chkState[pk]=[];
+  return DB.chkState[pk];
+}
+function getChkChecked(key){
+  const tpl=DB.checklistTemplates[key];
+  if(tpl.scope==='daily') return getDailyChk(calDate,key);
+  return getPeriodChk(key);
+}
+function setChkChecked(key,arr){
+  const tpl=DB.checklistTemplates[key];
+  if(tpl.scope==='daily'){
+    const log=getDayLog(calDate);
+    const field='chk'+key.charAt(0).toUpperCase()+key.slice(1);
+    log[field]=arr;
+  } else {
+    let pk;
+    if(tpl.scope==='weekly') pk=(CU?CU.id:'g')+'_weekly_'+isoWeek(calDate);
+    else pk=(CU?CU.id:'g')+'_monthly_'+isoMonth(calDate);
+    DB.chkState[pk]=arr;
+  }
+}
+function chkScopeLbl(key){
+  const s=DB.checklistTemplates[key].scope;
+  if(s==='daily') return heDateStr(calDate).split(',')[0]; // "יום ראשון"
+  if(s==='weekly') return 'שבוע '+isoWeek(calDate).split('-W')[1];
+  return MONTHS_HE[Number(calDate.split('-')[1])-1];
+}
+function chkResetState(key){
+  const tpl=DB.checklistTemplates[key];
+  if(tpl.scope==='daily'){const l=getDayLog(calDate);const f='chk'+key.charAt(0).toUpperCase()+key.slice(1);l[f]=[];}
+  else{let pk;if(tpl.scope==='weekly')pk=(CU?CU.id:'g')+'_weekly_'+isoWeek(calDate);else pk=(CU?CU.id:'g')+'_monthly_'+isoMonth(calDate);DB.chkState[pk]=[];}
+  saveDB();renderChecklists();
+}
+
+/* ══════════ FIREBASE ══════════ */
+const DEFAULT_FB_CFG={apiKey:"AIzaSyBF4wPV2r7S-OBeoxF780GnnKAU_Zh5U9o",databaseURL:"https://shirel-referent-default-rtdb.firebaseio.com",projectId:"shirel-referent",workspaceKey:"shirel"};
+function getFbConfig(){try{return JSON.parse(localStorage.getItem('ref_fb_cfg')||'null')||DEFAULT_FB_CFG;}catch{return DEFAULT_FB_CFG;}}
+function fbSaveConfig(){
+  const cfg={apiKey:document.getElementById('fb-apikey').value.trim(),databaseURL:document.getElementById('fb-dburl').value.trim(),projectId:document.getElementById('fb-projid').value.trim(),workspaceKey:document.getElementById('fb-wkey').value.trim()};
+  if(!cfg.apiKey||!cfg.databaseURL||!cfg.workspaceKey){toast('נא למלא API Key, Database URL ומפתח סוכנות');return;}
+  localStorage.setItem('ref_fb_cfg',JSON.stringify(cfg));toast('✔ הגדרות נשמרו — לחץ התחבר');
+}
+function fbClearConfig(){if(!confirm('למחוק?'))return;localStorage.removeItem('ref_fb_cfg');fbDisconnect();renderFbSettings();}
+function fbConnect(){
+  const cfg=getFbConfig();if(!cfg){toast('נא לשמור הגדרות תחילה');return;}
+  try{
+    setSyncStatus('busy','מתחבר...');
+    if(fbApp){try{fbApp.delete();}catch(e){}}
+    fbApp=firebase.initializeApp({apiKey:cfg.apiKey,databaseURL:cfg.databaseURL,projectId:cfg.projectId},'shirel_'+Date.now());
+    const db=firebase.database(fbApp);
+    fbRef=db.ref('agencies/'+cfg.workspaceKey+'/data');
+    fbRef.on('value',snap=>{
+      if(fbSyncing)return;
+      const val=snap.val();
+      if(val){
+        const inc=typeof val==='string'?JSON.parse(val):val;
+        fbSyncing=true;
+        try{
+        // ══ CONTENT DEFAULTS: fallback only — שמור מה שיש ב-Firebase, השלם רק אם חסר
+        if(!inc.procedures||!inc.procedures.length)inc.procedures=JSON.parse(JSON.stringify(DEF_PROC));
+        if(!inc.portals||!inc.portals.length)inc.portals=JSON.parse(JSON.stringify(DEF_PORT));
+        if(!inc.workday||!inc.workday.length)inc.workday=JSON.parse(JSON.stringify(DEF_WD));
+        if(!hasValidChk(inc.checklistTemplates))inc.checklistTemplates=JSON.parse(JSON.stringify(DEF_CHK));
+        // Sync only: users, userContent (dailyLog), attendance, chkState
+        if(!inc.users||!inc.users.length)inc.users=DB.users;
+        if(!inc.userContent)inc.userContent={};
+        // Merge dailyLog: combine entries from both local and remote, remote wins per date
+        Object.keys(DB.userContent||{}).forEach(uid=>{
+          if(!inc.userContent[uid]){inc.userContent[uid]=DB.userContent[uid];}
+          else{
+            const mergedDL=Object.assign({},DB.userContent[uid].dailyLog||{},inc.userContent[uid].dailyLog||{});
+            inc.userContent[uid]={...inc.userContent[uid],dailyLog:mergedDL};
+          }
+        });
+        if(!inc.attendance)inc.attendance=DB.attendance||{};
+        if(!inc.chkState)inc.chkState=DB.chkState||{};
+        DB=inc;
+        ensureAdmin();
+        localStorage.setItem(DB_KEY,JSON.stringify(DB));
+        if(CU){renderAll();renderChecklists();updateClockUI();}
+        }finally{fbSyncing=false;}
+      } else {
+        // Firebase empty → push current DB (with defaults)
+        fbPushForce();
+      }
+      setSyncStatus('ok','מסונכרן ✔');
+    },err=>setSyncStatus('err','שגיאה: '+err.code));
+    document.getElementById('fb-btn-connect').style.display='none';
+    document.getElementById('fb-btn-disc').style.display='';
+    document.getElementById('fb-btn-push').style.display='';
+    document.getElementById('sync-wrap').style.display='flex';
+  }catch(e){setSyncStatus('err','שגיאה: '+e.message);toast('שגיאת Firebase: '+e.message);}
+}
+function fbDisconnect(){if(fbApp){try{fbApp.delete();}catch(e){}}fbApp=null;fbRef=null;setSyncStatus('off','לא מחובר');document.getElementById('fb-btn-connect').style.display='';document.getElementById('fb-btn-disc').style.display='none';document.getElementById('fb-btn-push').style.display='none';document.getElementById('sync-wrap').style.display='none';}
+function fbPush(){if(!fbRef||fbSyncing)return;fbRef.set(JSON.parse(JSON.stringify(DB))).catch(()=>setSyncStatus('err','שגיאת שמירה'));}
+function fbPushForce(){if(!fbRef)return;fbRef.set(JSON.parse(JSON.stringify(DB)));}
+function fbPushNow(){if(!fbRef){toast('Firebase לא מחובר');return;}setSyncStatus('busy','שולח...');fbRef.set(JSON.parse(JSON.stringify(DB))).then(()=>{setSyncStatus('ok','מסונכרן ✔');toast('✔ נשלח לענן');}).catch(()=>setSyncStatus('err','שגיאה'));}
+function setSyncStatus(type,txt){['sync-dot','fb-dot'].forEach(id=>{const el=document.getElementById(id);if(el){el.className='sync-dot sync-'+type;}});const st=document.getElementById('sync-txt');if(st)st.textContent=txt;const fs=document.getElementById('fb-status-txt');if(fs)fs.textContent=txt;}
+function renderFbSettings(){const cfg=getFbConfig()||{};[['fb-apikey',cfg.apiKey],['fb-dburl',cfg.databaseURL],['fb-projid',cfg.projectId],['fb-wkey',cfg.workspaceKey]].forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v||'';});}
+function tryAutoConnect(){const cfg=getFbConfig();if(cfg&&cfg.apiKey&&cfg.databaseURL)setTimeout(fbConnect,500);}
+
+/* ══════════ AUTH ══════════ */
+function doLogin(){
+  const email=(document.getElementById('li-email').value||'').trim().toLowerCase();
+  const pass=document.getElementById('li-pass').value;
+  const remember=document.getElementById('li-remember').checked;
+  const user=DB.users.find(u=>u.email.toLowerCase()===email);
+  if(!user||user.pw!==hashPw(pass)){document.getElementById('li-err').textContent='אימייל או סיסמה שגויים';return;}
+  document.getElementById('li-err').textContent='';
+  const sess=JSON.stringify({id:user.id});
+  sessionStorage.setItem('ref_sess',sess);
+  if(remember)localStorage.setItem('ref_sess_persist',sess);
+  else localStorage.removeItem('ref_sess_persist');
+  startApp(user);
+}
+function doLogout(){sessionStorage.removeItem('ref_sess');localStorage.removeItem('ref_sess_persist');CU=null;isAdmin=false;document.getElementById('app').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('li-pass').value='';document.getElementById('li-err').textContent='';}
+function startApp(user){
+  CU=user;isAdmin=(user.role==='admin');
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('hdr-name').textContent=user.name;
+  const titleEl=document.getElementById('hdr-title');if(titleEl)titleEl.textContent='מערכת ניהול — '+user.name;
+  document.getElementById('hdr-role-badge').innerHTML=isAdmin?'<span class="uadmin">מנהל</span>':'';
+  ['btn-users','btn-export','btn-import','btn-firebase'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=isAdmin?'':'none';});
+  const fbTab=document.getElementById('tab-firebase-btn');if(fbTab)fbTab.style.display=isAdmin?'':'none';
+  document.querySelector('.main').classList.toggle('readonly-mode',!isAdmin);
+  ['wd-btn-add','proc-btn-add','portal-btn-add'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=isAdmin?'':'none';});
+  calDate=todayStr();histWeekOffset=0;histSelDate=todayStr();attMonthOffset=0;
+  renderAll();
+  updateClockUI();
+  if(isAdmin)renderFbSettings();
+  tryAutoConnect();
+  // ══ BACKUP RESTORE: 3 שניות אחרי הכניסה — אחרי שFirebase סיים — בדוק ותקן
+  setTimeout(function(){
+    var changed=false;
+    if(!DB.procedures||!DB.procedures.length){DB.procedures=JSON.parse(JSON.stringify(DEF_PROC));changed=true;}
+    if(!DB.portals||!DB.portals.length){DB.portals=JSON.parse(JSON.stringify(DEF_PORT));changed=true;}
+    if(!DB.workday||!DB.workday.length){DB.workday=JSON.parse(JSON.stringify(DEF_WD));changed=true;}
+    if(!DB.checklistTemplates||!Object.keys(DB.checklistTemplates||{}).length){DB.checklistTemplates=JSON.parse(JSON.stringify(DEF_CHK));changed=true;}
+    if(changed){
+      localStorage.setItem(DB_KEY,JSON.stringify(DB));
+      renderAll();if(typeof renderChecklists==='function')renderChecklists();
+      toast('✔ תוכן שוחזר אוטומטית');
+      // push לכל המשתמשים — כדי שמחשבים אחרים יקבלו את התוכן
+      if(fbRef){fbSyncing=true;fbRef.set(JSON.parse(JSON.stringify(DB))).then(function(){fbSyncing=false;toast('✔ נשמר בענן');}).catch(function(){fbSyncing=false;});}
+    }
+  },3000);
+}
+document.getElementById('li-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('li-pass').focus()});
+document.getElementById('li-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+
+/* ══════════ CHANGE PASSWORD ══════════ */
+function openChangePw(){
+  modalMode='changePw';
+  document.getElementById('modal-title').textContent='🔑 שינוי סיסמה';
+  document.getElementById('modal-box').classList.remove('modal-xl');
+  document.getElementById('modal-actions').style.display='flex';
+  document.getElementById('modal-body').innerHTML=`
+    <div class="form-group"><label class="form-label">סיסמה נוכחית</label><input id="cpw0" class="form-ctrl" type="password" placeholder="••••••••"></div>
+    <div class="form-group"><label class="form-label">סיסמה חדשה (לפחות 6 תווים)</label><input id="cpw1" class="form-ctrl" type="password" placeholder="••••••••"></div>
+    <div class="form-group"><label class="form-label">אימות סיסמה חדשה</label><input id="cpw2" class="form-ctrl" type="password" placeholder="••••••••"></div>
+    <div class="pw-err" id="cpw-err"></div>`;
+  document.getElementById('modal-overlay').style.display='flex';
+  setTimeout(()=>document.getElementById('cpw0').focus(),50);
+}
+function saveChangePw(){
+  const cur=document.getElementById('cpw0').value;
+  const n1=document.getElementById('cpw1').value;
+  const n2=document.getElementById('cpw2').value;
+  const errEl=document.getElementById('cpw-err');
+  const u=DB.users.find(x=>x.id===CU.id);
+  if(!u||u.pw!==hashPw(cur)){errEl.textContent='הסיסמה הנוכחית שגויה';return;}
+  if(n1.length<6){errEl.textContent='הסיסמה החדשה חייבת להיות לפחות 6 תווים';return;}
+  if(n1!==n2){errEl.textContent='הסיסמאות אינן תואמות';return;}
+  u.pw=hashPw(n1);saveDB();closeModal();toast('✔ סיסמה עודכנה');
+}
+
+/* ══════════ TABS ══════════ */
+function switchTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const panel=document.getElementById('tab-'+name);if(panel)panel.classList.add('active');
+  if(name==='history')renderHistory();
+  if(name==='firebase')renderFbSettings();
+  if(name==='attendance')renderAttendance();
+  if(name==='procedures')renderProcedures();
+  if(name==='portals')renderPortals();
+}
+
+/* ══════════ CALENDAR ══════════ */
+function calMove(dir){calDate=addDays(calDate,dir);renderJournal();}
+function calToday(){calDate=todayStr();renderJournal();}
+function updateCalDisplay(){
+  const isToday=calDate===todayStr();
+  document.getElementById('cal-date-display').textContent=heDateStr(calDate);
+  document.getElementById('cal-date-sub').textContent=isToday?'היום':calDate>todayStr()?'עתיד':'עבר';
+  const na=document.getElementById('wd-note-area');
+  if(na)na.disabled=(!isAdmin&&calDate!==todayStr());
+}
+
+/* ══════════ JOURNAL = WORKDAY + CHECKLISTS ══════════ */
+function renderJournal(){
+  updateCalDisplay();
+  // Admin journal selector bar
+  const jBar=document.getElementById('journal-admin-bar');
+  if(jBar){
+    jBar.style.display=isAdmin?'flex':'none';
+    if(isAdmin){
+      const nonAdmins=DB.users.filter(u=>u.role!=='admin');
+      if(!contentViewUserId&&nonAdmins.length)contentViewUserId=nonAdmins[0].id;
+      const sel=document.getElementById('journal-user-sel');
+      if(sel){sel.innerHTML=nonAdmins.map(u=>`<option value="${u.id}"${u.id===contentViewUserId?' selected':''}>${esc(u.name)}</option>`).join('');if(contentViewUserId)sel.value=contentViewUserId;}
+    }
+  }
+  renderWorkday();
+  renderChecklists();
+  // print header
+  const log=getDayLog(calDate);
+  const done=log.checked.length,total=DB.workday.length;
+  const viewUser=isAdmin&&contentViewUserId?DB.users.find(u=>u.id===contentViewUserId):null;
+  document.getElementById('ph-title').textContent='יומן עבודה'+(viewUser?' — '+viewUser.name:' — '+heDateStr(calDate));
+  document.getElementById('ph-sub').textContent=`${done} מתוך ${total} משימות הושלמו${log.note?' | '+log.note:''}`;
+}
+
+function renderWorkday(){
+  if(!DB.workday||!DB.workday.length)DB.workday=JSON.parse(JSON.stringify(DEF_WD));
+  try{
+  const log=getDayLog(calDate);
+  const canCheck=isAdmin||calDate===todayStr();
+  const total=DB.workday.length,done=log.checked.length,pct=total?Math.round(done/total*100):0;
+  document.getElementById('wd-prog-fill').style.width=pct+'%';
+  document.getElementById('wd-prog-txt').textContent=`${done} / ${total} משימות יום עבודה`;
+  const na=document.getElementById('wd-note-area');na.value=log.note||'';
+  document.getElementById('wd-list').innerHTML=DB.workday.map(w=>{
+    const chk=log.checked.includes(w.id);
+    return`<div class="wd-item${chk?' done-task':''}">
+      <div class="wd-check-wrap">
+        <input class="wd-check" type="checkbox" ${chk?'checked':''} ${!canCheck?'disabled':''}
+               onchange="toggleWdTask(${w.id},this.checked)">
+        <div class="wd-time" ${isAdmin?`contenteditable="true" onblur="wdUpd(${w.id},'time',this.innerText)"`:''}>${esc(w.time)}</div>
+      </div>
+      <div>
+        <div class="wd-title" ${isAdmin?`contenteditable="true" onblur="wdUpd(${w.id},'title',this.innerText)"`:''}>${esc(w.title)}</div>
+        <div class="wd-desc"  ${isAdmin?`contenteditable="true" onblur="wdUpd(${w.id},'desc',this.innerText)"`:''}>${esc(w.desc)}</div>
+      </div>
+      ${isAdmin?`<button class="btn-del" onclick="wdDel(${w.id})">🗑</button>`:''}
+    </div>`;}).join('');
+}catch(e){const el=document.getElementById('wd-prog-txt');if(el)el.textContent='❌ שגיאה: '+e.message;}}
+function toggleWdTask(id,chk){const l=getDayLog(calDate);chk?(l.checked.includes(id)||l.checked.push(id)):(l.checked=l.checked.filter(x=>x!==id));saveDB();renderWorkday();}
+function saveWdNote(v){getDayLog(calDate).note=v;saveDB();}
+function wdUpd(id,f,v){if(!isAdmin)return;const w=DB.workday.find(x=>x.id===id);if(w){w[f]=v.trim();saveDB();}}
+function wdDel(id){if(!isAdmin||!confirm('למחוק?'))return;DB.workday=DB.workday.filter(x=>x.id!==id);saveDB();renderWorkday();}
+
+/* ══════════ CHECKLISTS (right column, per-day) ══════════ */
+function hasValidChk(c){return c&&typeof c==='object'&&!Array.isArray(c)&&c.morning&&c.evening;}
+function saveTasksLog(idx,val){const log=getDayLog(calDate);if(!Array.isArray(log.tasksLog))log.tasksLog=Array(10).fill('');log.tasksLog[idx]=val;saveDB();}
+
+function renderChecklists(){
+  if(!hasValidChk(DB.checklistTemplates))DB.checklistTemplates=JSON.parse(JSON.stringify(DEF_CHK));
+  const col=document.getElementById('chk-col');
+  col.innerHTML='<div class="section-sub">צ׳קליסטים — '+heDateStr(calDate).split(',')[0]+' ('+isoWeek(calDate).split('-W')[1]+'/'+ MONTHS_HE[Number(calDate.split('-')[1])-1]+')</div>';
+  const canCheck=isAdmin||calDate===todayStr();
+  const log=getDayLog(calDate);
+
+  // פונקציה פנימית: מרנדרת כרטיס צ'קליסט רגיל
+  function renderChkCard(k){
+    const tpl=DB.checklistTemplates[k];if(!tpl)return;
+    const checked=getChkChecked(k);
+    const total=tpl.items.length,done=checked.length,pct=total?Math.round(done/total*100):0;
+    const card=document.createElement('div');card.className='chk-card';
+    card.innerHTML=`
+      <div class="chk-head ${tpl.cls}">
+        <span>${tpl.title}</span>
+        <button class="chk-reset" onclick="chkResetState('${k}')">↺</button>
+      </div>
+      <div class="chk-prog-bar"><div class="chk-prog-fill" id="cpf-${k}" style="width:${pct}%"></div></div>
+      <div class="chk-period-lbl"><span>${chkScopeLbl(k)}</span><span class="chk-count" id="cpl-${k}">${done}/${total}</span></div>
+      <div class="chk-items">
+        ${tpl.items.map(it=>{const chk=checked.includes(it.id);return`
+          <div class="chk-row${chk?' done':''}" id="cr-${k}-${it.id}">
+            <input type="checkbox" ${chk?'checked':''} ${!canCheck?'disabled':''}
+                   onchange="chkToggle('${k}',${it.id},this.checked)">
+            <span class="chk-row-text" ${isAdmin?`contenteditable="true" onblur="chkItUpd('${k}',${it.id},this.innerText)"`:''}>${esc(it.text)}</span>
+            ${isAdmin?`<button class="btn-del" onclick="chkItDel('${k}',${it.id})">🗑</button>`:''}
+          </div>`;}).join('')}
+      </div>
+      <div class="chk-foot chk-add">
+        ${isAdmin?`<button class="btn-add" style="margin:0;font-size:.77rem;padding:5px" onclick="chkAddIt('${k}')">+ הוסף פריט</button>`:''}
+      </div>`;
+    col.appendChild(card);
+  }
+
+  // ══ סדר תצוגה: פתיחת יום → משימות שבוצעו → סגירת יום → שאר הצ'קליסטים ══
+
+  // 1. פתיחת יום
+  if(DB.checklistTemplates.morning)renderChkCard('morning');
+
+  // 2. משימות שבוצעו היום — 10 שורות ממוספרות
+  const tasksCard=document.createElement('div');tasksCard.className='chk-card';
+  const tl=log.tasksLog||[];
+  tasksCard.innerHTML=`
+    <div class="chk-head chk-tasks">
+      <span>✏️ משימות שבוצעו היום</span>
+    </div>
+    <div class="chk-items" style="gap:4px">
+      ${Array.from({length:10},(_,i)=>`
+        <div class="chk-row" style="gap:8px;padding:4px 6px">
+          <span style="font-weight:700;color:#374151;min-width:18px;font-size:.82rem;flex-shrink:0">${i+1}.</span>
+          <input type="text" class="tasks-log-input" value="${esc(tl[i]||'')}" placeholder="..."
+            ${!canCheck?'readonly':''}
+            onchange="saveTasksLog(${i},this.value)"
+            oninput="saveTasksLog(${i},this.value)">
+        </div>`).join('')}
+    </div>`;
+  col.appendChild(tasksCard);
+
+  // 3. סגירת יום
+  if(DB.checklistTemplates.evening)renderChkCard('evening');
+
+  // 4. שאר הצ'קליסטים (פורטלים, מסמכים, שבועי, חודשי...)
+  Object.keys(DB.checklistTemplates)
+    .filter(k=>k!=='morning'&&k!=='evening')
+    .forEach(k=>renderChkCard(k));
+}
+function chkToggle(k,id,chk){
+  const arr=getChkChecked(k);
+  if(chk){if(!arr.includes(id))arr.push(id);}else{const i=arr.indexOf(id);if(i>-1)arr.splice(i,1);}
+  setChkChecked(k,arr);saveDB();
+  const row=document.getElementById(`cr-${k}-${id}`);if(row){chk?row.classList.add('done'):row.classList.remove('done');}
+  const tpl=DB.checklistTemplates[k],done=getChkChecked(k).length,total=tpl.items.length,pct=total?Math.round(done/total*100):0;
+  const pf=document.getElementById(`cpf-${k}`),pl=document.getElementById(`cpl-${k}`);
+  if(pf)pf.style.width=pct+'%';if(pl)pl.textContent=`${done}/${total}`;
+}
+function chkItUpd(k,id,v){if(!isAdmin)return;const it=DB.checklistTemplates[k].items.find(x=>x.id===id);if(it){it.text=v.trim();saveDB();}}
+function chkItDel(k,id){if(!isAdmin)return;DB.checklistTemplates[k].items=DB.checklistTemplates[k].items.filter(x=>x.id!==id);saveDB();renderChecklists();}
+function chkAddIt(k){if(!isAdmin)return;const nid=uid();DB.checklistTemplates[k].items.push({id:nid,text:'פריט חדש'});saveDB();renderChecklists();setTimeout(()=>{const r=document.getElementById(`cr-${k}-${nid}`);if(r)focusNew(r.querySelector('.chk-row-text'))},40);}
+
+/* ══════════ EXPORT ══════════ */
+function exportDayExcel(){
+  const log=getDayLog(calDate);
+  const rows=[['סוג','פריט','סטטוס','הערה']];
+  DB.workday.forEach(w=>rows.push(['משימה',`${w.time} — ${w.title}`,log.checked.includes(w.id)?'✔ הושלם':'ממתין','']));
+  rows.push(['','','','']);
+  Object.entries(DB.checklistTemplates).forEach(([k,tpl])=>{
+    const checked=getChkChecked(k);
+    rows.push([tpl.title,'','','']);
+    tpl.items.forEach(it=>rows.push(['',it.text,checked.includes(it.id)?'✔':'—','']));
+  });
+  if(log.note)rows.push(['הערת יום',log.note,'','']);
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:12},{wch:36},{wch:12},{wch:24}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'יומן');
+  XLSX.writeFile(wb,`יומן_${calDate}.xlsx`);toast('✔ Excel הורד');
+}
+
+/* ══════════ PROCEDURES ══════════ */
+function renderProcedures(){
+  if(!DB.procedures||!DB.procedures.length)DB.procedures=JSON.parse(JSON.stringify(DEF_PROC));
+  DB.procedures.forEach(p=>{if(!Array.isArray(p.steps))p.steps=[];});
+  const pBar=document.getElementById('proc-admin-bar');
+  if(pBar)pBar.style.display='none';
+  try{
+  document.getElementById('proc-list').innerHTML=getUCDB().procedures.map(p=>`
+    <div class="proc-card">
+      <div class="proc-head">
+        <div class="proc-name" ${isAdmin?`contenteditable="true" onblur="procUpd(${p.id},'name',this.innerText)"`:''}>${esc(p.name)}</div>
+        <div class="proc-head-btns">
+          <button class="btn-proc" onclick="procAddStep(${p.id})">+ שלב</button>
+          <button class="btn-proc btn-proc-del" onclick="procDel(${p.id})">🗑</button>
+        </div>
+      </div>
+      <div class="proc-steps" id="pst-${p.id}">
+        ${p.steps.map((s,i)=>`
+          <div class="step-row">
+            <div class="step-num">${i+1}</div>
+            <div class="step-text" ${isAdmin?`contenteditable="true" onblur="procStepUpd(${p.id},${i},this.innerText)"`:''}>${esc(s)}</div>
+            ${isAdmin?`<button class="btn-del" onclick="procStepDel(${p.id},${i})">🗑</button>`:''}
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+  }catch(e){const el=document.getElementById('proc-list');if(el)el.innerHTML='<p style="color:red">❌ שגיאה: '+e.message+'</p>';}
+}
+function procUpd(id,f,v){if(!isAdmin)return;const p=getUCDB().procedures.find(x=>x.id===id);if(p){p[f]=v.trim();saveDB();}}
+function procDel(id){if(!isAdmin||!confirm('למחוק נוהל?'))return;const _pdb=getUCDB();_pdb.procedures=_pdb.procedures.filter(x=>x.id!==id);saveDB();renderProcedures();}
+function procAddStep(id){if(!isAdmin)return;const p=getUCDB().procedures.find(x=>x.id===id);if(!p)return;p.steps.push('שלב חדש');saveDB();renderProcedures();setTimeout(()=>{const r=document.querySelectorAll(`#pst-${id} .step-text`);focusNew(r[r.length-1])},40);}
+function procStepUpd(id,i,v){if(!isAdmin)return;const p=getUCDB().procedures.find(x=>x.id===id);if(p){p.steps[i]=v.trim();saveDB();}}
+function procStepDel(id,i){if(!isAdmin)return;const p=getUCDB().procedures.find(x=>x.id===id);if(!p||p.steps.length<=1){toast('נוהל חייב לפחות שלב אחד');return;}p.steps.splice(i,1);saveDB();renderProcedures();}
+
+/* ══════════ PORTALS ══════════ */
+function fCls(f){return f==='יומי'?'bd-daily':f==='שבועי'?'bd-weekly':'bd-asneeded'}
+function renderPortals(){
+  if(!DB.portals||!DB.portals.length)DB.portals=JSON.parse(JSON.stringify(DEF_PORT));
+  DB.portals.forEach(p=>{if(!p.freq)p.freq='לפי צורך';if(!p.url)p.url='';if(!p.notes)p.notes='';});
+  const portBar=document.getElementById('port-admin-bar');
+  if(portBar)portBar.style.display='none';
+  try{
+  document.getElementById('portals-grid').innerHTML=getUCDB().portals.map(p=>`
+    <div class="portal-card">
+      <div class="portal-top">
+        <div class="portal-name" ${isAdmin?`contenteditable="true" onblur="portUpd(${p.id},'name',this.innerText)"`:''}>${esc(p.name)}</div>
+        <span class="badge ${fCls(p.freq)}" id="pb-${p.id}">${esc(p.freq)}</span>
+      </div>
+      <div class="portal-url" ${isAdmin?`contenteditable="true" onblur="portUpd(${p.id},'url',this.innerText)"`:''}>${esc(p.url)}</div>
+      <div class="portal-notes" ${isAdmin?`contenteditable="true" onblur="portUpd(${p.id},'notes',this.innerText)"`:''}>${esc(p.notes)}</div>
+      <div class="portal-bottom">
+        <button class="btn btn-primary" style="font-size:.77rem;padding:5px 11px" onclick="openUrl(${p.id})">🔗 פתח</button>
+        <select ${isAdmin?`onchange="portFreq(${p.id},this.value)"`:''} ${isAdmin?'':'disabled'}>
+          <option ${p.freq==='יומי'?'selected':''}>יומי</option>
+          <option ${p.freq==='שבועי'?'selected':''}>שבועי</option>
+          <option ${p.freq==='לפי צורך'?'selected':''}>לפי צורך</option>
+        </select>
+        ${isAdmin?`<button class="btn-del" onclick="portDel(${p.id})">🗑</button>`:''}
+      </div>
+    </div>`).join('');
+  }catch(e){const el=document.getElementById('portals-grid');if(el)el.innerHTML='<p style="color:red">❌ שגיאה: '+e.message+'</p>';}
+}
+function openUrl(id){const p=getUCDB().portals.find(x=>x.id===id);if(p&&p.url)window.open(p.url,'_blank');}
+function portUpd(id,f,v){if(!isAdmin)return;const p=getUCDB().portals.find(x=>x.id===id);if(p){p[f]=v.trim();saveDB();}}
+function portFreq(id,v){if(!isAdmin)return;const p=getUCDB().portals.find(x=>x.id===id);if(p){p.freq=v;saveDB();const b=document.getElementById('pb-'+id);if(b){b.textContent=v;b.className='badge '+fCls(v);}}}
+function portDel(id){if(!isAdmin||!confirm('למחוק?'))return;const _ptdb=getUCDB();_ptdb.portals=_ptdb.portals.filter(x=>x.id!==id);saveDB();renderPortals();}
+
+/* ══════════ HISTORY ══════════ */
+function histMove(dir){histWeekOffset+=dir;renderHistory();}
+function histNow(){histWeekOffset=0;histSelDate=todayStr();renderHistory();}
+function ringClass(done,total){if(!total||done===0)return'ring-empty';const p=done/total;if(p<0.5)return'ring-low';if(p<1)return'ring-mid';return'ring-full';}
+function renderHistory(){
+  const today=todayStr();
+  const weekStart=addDays(startOfWeek(today),histWeekOffset*7);
+  const weekEnd=addDays(weekStart,6);
+  const ws2=weekStart.split('-'),we=weekEnd.split('-');
+  document.getElementById('hist-week-label').textContent=`${Number(ws2[2])} ${MONTHS_HE[Number(ws2[1])-1]} – ${Number(we[2])} ${MONTHS_HE[Number(we[1])-1]} ${we[0]}`;
+  let totalDone=0,daysWorked=0;
+  const days=[];
+  const hDL=getJournalDailyLog(getJournalUID());
+  for(let i=0;i<7;i++){const d=addDays(weekStart,i);const log=hDL[d];const done=log?log.checked.length:0;if(done>0)daysWorked++;totalDone+=done;days.push({d,done,log});}
+  document.getElementById('hist-stat-row').innerHTML=`
+    <div class="hist-stat"><div class="hist-stat-num">${daysWorked}</div><div class="hist-stat-lbl">ימים עם נתונים</div></div>
+    <div class="hist-stat"><div class="hist-stat-num">${totalDone}</div><div class="hist-stat-lbl">משימות שהושלמו</div></div>
+    <div class="hist-stat"><div class="hist-stat-num">${daysWorked>0?Math.round(totalDone/daysWorked):0}</div><div class="hist-stat-lbl">ממוצע ליום</div></div>`;
+  document.getElementById('hist-grid').innerHTML=days.map(({d,done,log})=>{
+    const isFuture=d>today;const cls=d===today?'hist-today':d===histSelDate?'hist-selected':isFuture?'hist-future':'';
+    const rc=ringClass(done,DB.workday.length);const pct=DB.workday.length?Math.round(done/DB.workday.length*100):0;
+    return`<div class="hist-day ${cls}" onclick="${isFuture?'':(`histSelect('${d}')`)}">
+      <div class="hist-dow">${DAYS_HE[new Date(d+'T12:00:00').getDay()]}</div>
+      <div class="hist-date">${Number(d.split('-')[2])}</div>
+      <div class="hist-ring ${rc}">${DB.workday.length?pct+'%':'—'}</div>
+      <div class="hist-note-preview">${esc((log&&log.note)||'')}</div>
+    </div>`;}).join('');
+  renderHistDetail(histSelDate||today);
+}
+function histSelect(d){histSelDate=d;renderHistory();}
+function renderHistDetail(d){
+  const log=getJournalDailyLog(getJournalUID())[d]||{checked:[],note:''};
+  document.getElementById('hist-detail').innerHTML=`
+    <div class="hist-detail">
+      <div class="hist-detail-title">📅 ${heDateStr(d)}</div>
+      ${DB.workday.map(w=>{const done=log.checked.includes(w.id);return`
+        <div class="hist-task-row${done?' hist-done':''}">
+          <span class="hist-task-status">${done?'✔':'○'}</span>
+          <span class="hist-task-name">${esc(w.title)}</span>
+          <span class="hist-task-time">${esc(w.time)}</span>
+        </div>`;}).join('')}
+      ${log.note?`<div class="hist-note-box">📝 ${esc(log.note)}</div>`:''}
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="goToDay('${d}')">עבור ליום זה ←</button>
+        <button class="btn btn-green" onclick="exportHistDayExcel('${d}')">📊 Excel</button>
+      </div>
+    </div>`;
+}
+function goToDay(d){calDate=d;document.querySelector('[data-tab=journal]').click();}
+function exportHistDayExcel(d){
+  const log=getJournalDailyLog(getJournalUID())[d]||{checked:[],note:''};
+  const rows=[['שעות','כותרת','סטטוס']];
+  DB.workday.forEach(w=>rows.push([w.time,w.title,log.checked.includes(w.id)?'✔ הושלם':'ממתין']));
+  if(log.note)rows.push(['הערת יום',log.note,'']);
+  const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:14},{wch:36},{wch:12}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'יום');
+  XLSX.writeFile(wb,`יום_${d}.xlsx`);toast('✔ Excel הורד');
+}
+function exportHistExcel(){
+  const today=todayStr(),weekStart=addDays(startOfWeek(today),histWeekOffset*7);
+  const rows=[['תאריך','יום','שעות','כותרת','סטטוס','הערות']];
+  for(let i=0;i<7;i++){
+    const hDL2=getJournalDailyLog(getJournalUID());const d=addDays(weekStart,i);const log=hDL2[d]||{checked:[],note:''};
+    const dow=DAYS_HE[new Date(d+'T12:00:00').getDay()];
+    DB.workday.forEach((w,wi)=>rows.push([d,dow,w.time,w.title,log.checked.includes(w.id)?'✔ הושלם':'ממתין',wi===0?log.note:'']));
+  }
+  const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:12},{wch:8},{wch:14},{wch:32},{wch:12},{wch:30}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'שבוע');
+  XLSX.writeFile(wb,`שבוע_${weekStart}.xlsx`);toast('✔ Excel שבועי הורד');
+}
+
+
+/* ══════════ ATTENDANCE ══════════ */
+let attMonthOffset=0,attViewUserId=null,contentViewUserId=null;
+function getAttYM(){const d=new Date();d.setMonth(d.getMonth()+attMonthOffset);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function attMove(dir){attMonthOffset+=dir;renderAttendance();}
+function attNow(){attMonthOffset=0;renderAttendance();}
+function attChangeUser(uid2){attViewUserId=uid2;renderAttendance();}
+function calcAttMins(ci,co){if(!ci||!co)return 0;const[h1,m1]=ci.split(':').map(Number);const[h2,m2]=co.split(':').map(Number);const d=(h2*60+m2)-(h1*60+m1);return d>0?d:0;}
+function fmtMins(m){const h=Math.floor(m/60),mm=m%60;return h+':'+String(mm).padStart(2,'0');}
+function nowTime(){const n=new Date();return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
+function getUserAtt(uid2){if(!DB.attendance[uid2])DB.attendance[uid2]={};return DB.attendance[uid2];}
+
+function doClock(type){
+  if(!CU)return;
+  if(!DB.attendance)DB.attendance={};
+  const today=todayStr(),ua=getUserAtt(CU.id);
+  if(!ua[today])ua[today]={};
+  const entry=ua[today],tn=nowTime();
+  if(type==='in'){if(entry.clockIn){toast('כניסה כבר נרשמה היום');return;}entry.clockIn=tn;toast('\u2714 כניסה נרשמה \u2014 '+tn);}
+  else{if(!entry.clockIn){toast('לא נרשמה כניסה להיום');return;}if(entry.clockOut){toast('יציאה כבר נרשמה היום');return;}entry.clockOut=tn;toast('\u2714 יציאה נרשמה \u2014 '+tn);}
+  saveDB();updateClockUI();
+}
+
+function updateClockUI(){
+  if(!CU)return;
+  const btnIn=document.getElementById('btn-clock-in'),btnOut=document.getElementById('btn-clock-out');
+  const wrap=document.getElementById('clock-status-wrap');
+  // Tab panel elements
+  const panel=document.getElementById('att-clock-panel');
+  const tabDot=document.getElementById('att-clock-dot'),tabLbl=document.getElementById('att-clock-lbl');
+  const tabBtnIn=document.getElementById('att-btn-in'),tabBtnOut=document.getElementById('att-btn-out');
+  if(isAdmin){
+    if(wrap)wrap.style.display='none';
+    if(btnIn)btnIn.style.display='none';
+    if(btnOut)btnOut.style.display='none';
+    if(panel)panel.style.display='none';
+    return;
+  }
+  if(!DB.attendance)DB.attendance={};
+  const today=todayStr(),ua=getUserAtt(CU.id),entry=ua[today]||{};
+  const dot=document.getElementById('clock-status-dot'),lbl=document.getElementById('clock-status-time');
+  if(wrap)wrap.style.display='flex';
+  if(panel)panel.style.display='flex';
+  if(!entry.clockIn){
+    if(btnIn){btnIn.style.display='';btnIn.disabled=false;}
+    if(btnOut)btnOut.style.display='none';
+    if(dot)dot.className='clock-status-dot';
+    if(lbl)lbl.textContent='לא נרשמה כניסה';
+    if(tabDot)tabDot.className='clock-status-dot';
+    if(tabLbl)tabLbl.textContent='לא נרשמה כניסה היום';
+    if(tabBtnIn){tabBtnIn.style.display='';tabBtnIn.disabled=false;}
+    if(tabBtnOut)tabBtnOut.style.display='none';
+  }else if(!entry.clockOut){
+    if(btnIn)btnIn.style.display='none';
+    if(btnOut){btnOut.style.display='';btnOut.disabled=false;}
+    if(dot)dot.className='clock-status-dot clocked-in';
+    if(lbl)lbl.textContent='כניסה: '+entry.clockIn;
+    if(tabDot)tabDot.className='clock-status-dot clocked-in';
+    if(tabLbl)tabLbl.textContent='כניסה: '+entry.clockIn+' | ממתין ליציאה';
+    if(tabBtnIn)tabBtnIn.style.display='none';
+    if(tabBtnOut){tabBtnOut.style.display='';tabBtnOut.disabled=false;}
+  }else{
+    if(btnIn)btnIn.style.display='none';if(btnOut)btnOut.style.display='none';
+    if(dot)dot.className='clock-status-dot clocked-done';
+    if(lbl)lbl.textContent=entry.clockIn+' – '+entry.clockOut;
+    if(tabDot)tabDot.className='clock-status-dot clocked-done';
+    if(tabLbl)tabLbl.textContent='כניסה: '+entry.clockIn+' | יציאה: '+entry.clockOut;
+    if(tabBtnIn)tabBtnIn.style.display='none';
+    if(tabBtnOut)tabBtnOut.style.display='none';
+  }
+}
+
+function renderAttendance(){
+  if(!CU)return;
+  if(!DB.attendance)DB.attendance={};
+
+  // Admin: populate user selector and pick viewed user
+  const adminBar=document.getElementById('att-admin-bar');
+  if(adminBar)adminBar.style.display=isAdmin?'flex':'none';
+  if(isAdmin){
+    const nonAdmins=DB.users.filter(u=>u.role!=='admin');
+    if(!attViewUserId&&nonAdmins.length)attViewUserId=nonAdmins[0].id;
+    const sel=document.getElementById('att-user-sel');
+    if(sel){
+      sel.innerHTML=nonAdmins.map(u=>`<option value="${u.id}"${u.id===attViewUserId?' selected':''}>${esc(u.name)}</option>`).join('');
+      if(attViewUserId)sel.value=attViewUserId;
+    }
+  }
+  const viewUid=isAdmin?(attViewUserId||CU.id):CU.id;
+
+  const ym=getAttYM();const[year,mon]=ym.split('-').map(Number);
+  document.getElementById('att-month-label').textContent=MONTHS_HE[mon-1]+' '+year;
+  const thEdit=document.getElementById('att-th-edit');if(thEdit)thEdit.style.display=isAdmin?'':'none';
+  const daysInMon=new Date(year,mon,0).getDate(),ua=getUserAtt(viewUid);
+  const LIMIT=182*60;let totalMins=0,rows='',workedDays=0;
+  for(let day=1;day<=daysInMon;day++){
+    const ds=year+'-'+String(mon).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    const dow=new Date(ds+'T12:00:00').getDay(),isWknd=dow===5||dow===6;
+    const entry=ua[ds]||{},mins=calcAttMins(entry.clockIn,entry.clockOut);
+    totalMins+=mins;if(entry.clockIn)workedDays++;
+    let badge='';
+    if(entry.clockIn&&entry.clockOut)badge='<span class="badge-done">\u2714 הושלם</span>';
+    else if(entry.clockIn)badge='<span class="badge-partial">\u23f3 חסרה יציאה</span>';
+    else if(!isWknd&&ds<=todayStr())badge='<span class="badge-off">\u2014</span>';
+    const editCell=isAdmin?`<td><button class="btn btn-ghost" style="font-size:.72rem;padding:3px 8px" onclick="editAttEntry('${ds}')">\u270f</button></td>`:'';
+    rows+=`<tr style="${isWknd?'opacity:.45':''}"><td>${ds}</td><td>${DAYS_HE[dow]}</td><td>${esc(entry.clockIn||'\u2014')}</td><td>${esc(entry.clockOut||'\u2014')}</td><td>${mins>0?fmtMins(mins):'\u2014'}</td><td>${badge}</td>${editCell}</tr>`;
+  }
+  document.getElementById('att-tbody').innerHTML=rows;
+  const regMins=Math.min(totalMins,LIMIT),otMins=Math.max(0,totalMins-LIMIT);
+  const extraCol=isAdmin?'<td></td>':'';
+  let tfoot=`<tr class="att-total-row"><td colspan="4">\u05e1\u05d4\u05f4\u05db \u05e9\u05e2\u05d5\u05ea</td><td>${fmtMins(regMins)}</td><td>\u05de\u05ea\u05d5\u05da 182:00</td>${extraCol}</tr>`;
+  if(otMins>0)tfoot+=`<tr class="att-ot-row"><td colspan="4">\u26a0 \u05e9\u05e2\u05d5\u05ea \u05e0\u05d5\u05e1\u05e4\u05d5\u05ea (\u05de\u05e2\u05dc 182)</td><td>${fmtMins(otMins)}</td><td></td>${extraCol}</tr>`;
+  document.getElementById('att-tfoot').innerHTML=tfoot;
+  const remH=Math.max(0,(LIMIT-totalMins)/60);
+  document.getElementById('att-summary').innerHTML=
+    `<div class="att-sum-card"><div class="att-sum-num">${workedDays}</div><div class="att-sum-lbl">\u05d9\u05de\u05d9 \u05e2\u05d1\u05d5\u05d3\u05d4</div></div>`+
+    `<div class="att-sum-card"><div class="att-sum-num">${fmtMins(totalMins)}</div><div class="att-sum-lbl">\u05e1\u05d4\u05f4\u05db \u05e9\u05e2\u05d5\u05ea \u05d4\u05d7\u05d5\u05d3\u05e9</div></div>`+
+    `<div class="att-sum-card ${otMins>0?'att-sum-ot':''}"><div class="att-sum-num">${otMins>0?fmtMins(otMins):'\u2014'}</div><div class="att-sum-lbl">\u05e9\u05e2\u05d5\u05ea \u05e0\u05d5\u05e1\u05e4\u05d5\u05ea</div></div>`+
+    `<div class="att-sum-card"><div class="att-sum-num">${remH.toFixed(1)}</div><div class="att-sum-lbl">\u05e9\u05e2\u05d5\u05ea \u05e2\u05d3 \u05d9\u05e2\u05d3 182</div></div>`;
+  // \u05e2\u05d3\u05db\u05df \u05db\u05e4\u05ea\u05d5\u05e8\u05d9 \u05db\u05e0\u05d9\u05e1\u05d4/\u05d9\u05e6\u05d9\u05d0\u05d4 \u05dc\u05e4\u05d9 \u05de\u05e6\u05d1 \u05de\u05e9\u05ea\u05de\u05e9 \u05e0\u05d5\u05db\u05d7\u05d9
+  updateClockUI();
+}
+
+function editAttEntry(ds){
+  if(!isAdmin)return;
+  if(!DB.attendance)DB.attendance={};
+  const editUid=attViewUserId||CU.id;
+  const viewUser=DB.users.find(u=>u.id===editUid)||CU;
+  const ua=getUserAtt(editUid),entry=ua[ds]||{};
+  modalMode='editAtt';
+  document.getElementById('modal-title').textContent='✏ עריכת נוכחות — '+(viewUser?viewUser.name:'')+' — '+heDateStr(ds);
+  document.getElementById('modal-box').classList.remove('modal-xl');
+  document.getElementById('modal-actions').style.display='flex';
+  document.getElementById('modal-body').innerHTML=`
+    <input type="hidden" id="att-edit-date" value="${ds}">
+    <input type="hidden" id="att-edit-uid" value="${editUid}">
+    <div class="form-group"><label class="form-label">שעת כניסה</label><input id="att-edit-in" class="form-ctrl" type="time" value="${entry.clockIn||''}"></div>
+    <div class="form-group"><label class="form-label">שעת יציאה</label><input id="att-edit-out" class="form-ctrl" type="time" value="${entry.clockOut||''}"></div>`;
+  document.getElementById('modal-overlay').style.display='flex';
+  setTimeout(()=>document.getElementById('att-edit-in').focus(),50);
+}
+
+function saveAttEdit(){
+  if(!isAdmin)return;
+  if(!DB.attendance)DB.attendance={};
+  const ds=document.getElementById('att-edit-date').value;
+  const ni=document.getElementById('att-edit-in').value,no=document.getElementById('att-edit-out').value;
+  const uidEl=document.getElementById('att-edit-uid');
+  const saveUid=uidEl?uidEl.value:(attViewUserId||CU.id);
+  const ua=getUserAtt(saveUid);
+  if(!ua[ds])ua[ds]={};
+  if(ni)ua[ds].clockIn=ni;else delete ua[ds].clockIn;
+  if(no)ua[ds].clockOut=no;else delete ua[ds].clockOut;
+  if(!ni&&!no)delete ua[ds];
+  saveDB();closeModal();renderAttendance();
+  if(ds===todayStr())updateClockUI();
+  toast('\u2714 \u05e9\u05e2\u05d5\u05ea \u05e2\u05d5\u05d3\u05db\u05e0\u05d5');
+}
+
+function exportAttExcel(){
+  if(!CU)return;
+  if(!DB.attendance)DB.attendance={};
+  const exportUid=isAdmin?(attViewUserId||CU.id):CU.id;
+  const exportUser=DB.users.find(u=>u.id===exportUid)||CU;
+  const ym=getAttYM();const[year,mon]=ym.split('-').map(Number);
+  const daysInMon=new Date(year,mon,0).getDate(),ua=getUserAtt(exportUid),LIMIT=182*60;
+  const rows=[['\u05ea\u05d0\u05e8\u05d9\u05da','\u05d9\u05d5\u05dd','\u05e9\u05e2\u05ea \u05db\u05e0\u05d9\u05e1\u05d4','\u05e9\u05e2\u05ea \u05d9\u05e6\u05d9\u05d0\u05d4','\u05e1\u05d4"\u05db \u05e9\u05e2\u05d5\u05ea','\u05e1\u05d8\u05d8\u05d5\u05e1']];
+  let totalMins=0;
+  for(let day=1;day<=daysInMon;day++){
+    const ds=year+'-'+String(mon).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    const dow=new Date(ds+'T12:00:00').getDay(),entry=ua[ds]||{},mins=calcAttMins(entry.clockIn,entry.clockOut);
+    totalMins+=mins;
+    const status=entry.clockIn&&entry.clockOut?'\u05d4\u05d5\u05e9\u05dc\u05dd':entry.clockIn?'\u05d7\u05e1\u05e8\u05d4 \u05d9\u05e6\u05d9\u05d0\u05d4':'\u2014';
+    rows.push([ds,DAYS_HE[dow],entry.clockIn||'\u2014',entry.clockOut||'\u2014',mins>0?fmtMins(mins):'\u2014',status]);
+  }
+  rows.push(['','','','','','']);
+  rows.push(['\u05e1\u05d4"\u05db \u05e9\u05e2\u05d5\u05ea','','','',fmtMins(Math.min(totalMins,LIMIT)),'\u05de\u05ea\u05d5\u05da 182:00']);
+  const ot=Math.max(0,totalMins-LIMIT);
+  if(ot>0)rows.push(['\u05e9\u05e2\u05d5\u05ea \u05e0\u05d5\u05e1\u05e4\u05d5\u05ea','','','',fmtMins(ot),'\u05de\u05e2\u05dc 182 \u05e9\u05e2\u05d5\u05ea']);
+  const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:12},{wch:8},{wch:12},{wch:12},{wch:12},{wch:16}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'\u05e0\u05d5\u05db\u05d7\u05d5\u05ea');
+  XLSX.writeFile(wb,'\u05e0\u05d5\u05db\u05d7\u05d5\u05ea_'+exportUser.name+'_'+ym+'.xlsx');
+  toast('\u2714 Excel \u05e0\u05d5\u05db\u05d7\u05d5\u05ea \u05d4\u05d5\u05e8\u05d3');
+}
+
+/* ══════════ USERS ══════════ */
+function openUsersModal(){
+  if(!isAdmin)return;
+  modalMode='users';
+  document.getElementById('modal-title').textContent='👥 ניהול משתמשים';
+  document.getElementById('modal-box').classList.add('modal-xl');
+  document.getElementById('modal-actions').style.display='none';
+  renderUsersBody();
+  document.getElementById('modal-overlay').style.display='flex';
+}
+function renderUsersBody(){
+  document.getElementById('modal-body').innerHTML=`
+    <table class="users-table">
+      <thead><tr><th>שם</th><th>אימייל</th><th>תפקיד</th><th></th></tr></thead>
+      <tbody>${DB.users.map(u=>`<tr><td>${esc(u.name)}</td><td style="direction:ltr;text-align:left">${esc(u.email)}</td><td><span class="role-badge ${u.role==='admin'?'role-admin':'role-user'}">${u.role==='admin'?'מנהל':'עובד'}</span></td><td>${u.email===ADMIN_EMAIL?'':(`<button class="btn-del" onclick="delUser('${u.id}')">🗑</button>`)}</td></tr>`).join('')}</tbody>
+    </table>
+    <div style="margin-top:16px;padding-top:13px;border-top:1px solid var(--lt)">
+      <div style="font-weight:700;color:var(--p1);margin-bottom:9px;font-size:.88rem">+ הוסף משתמש</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+        <div class="form-group"><label class="form-label">שם</label><input id="nu-n" class="form-ctrl" type="text"></div>
+        <div class="form-group"><label class="form-label">אימייל</label><input id="nu-e" class="form-ctrl" type="email" style="direction:ltr"></div>
+        <div class="form-group"><label class="form-label">סיסמה</label><input id="nu-p" class="form-ctrl" type="password"></div>
+        <div class="form-group"><label class="form-label">תפקיד</label><select id="nu-r" class="form-ctrl"><option value="user">עובד</option><option value="admin">מנהל</option></select></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:4px" onclick="addUser()">הוסף</button>
+    </div>`;
+}
+function addUser(){
+  const n=(document.getElementById('nu-n').value||'').trim();
+  const e=(document.getElementById('nu-e').value||'').trim().toLowerCase();
+  const p=document.getElementById('nu-p').value;
+  const r=document.getElementById('nu-r').value;
+  if(!n||!e||!p){toast('נא למלא את כל השדות');return;}
+  if(DB.users.find(u=>u.email.toLowerCase()===e)){toast('אימייל קיים');return;}
+  const newUid='u'+uid();
+  DB.users.push({id:newUid,name:n,email:e,pw:hashPw(p),role:r});
+  if(!DB.userContent)DB.userContent={};
+  DB.userContent[newUid]={dailyLog:{}};
+  saveDB();renderUsersBody();toast('✔ משתמש נוסף');
+}
+function delUser(id){if(!confirm('למחוק?'))return;DB.users=DB.users.filter(u=>u.id!==id);saveDB();renderUsersBody();}
+
+/* ══════════ MODAL ══════════ */
+function openModal(mode){
+  if(!isAdmin)return;
+  modalMode=mode;
+  document.getElementById('modal-box').classList.remove('modal-xl');
+  document.getElementById('modal-actions').style.display='flex';
+  const body=document.getElementById('modal-body');
+  if(mode==='addWorkday'){
+    document.getElementById('modal-title').textContent='+ משימה יומית';
+    body.innerHTML=`
+      <div class="form-group"><label class="form-label">שעות</label><input id="f0" class="form-ctrl" type="text" placeholder="9:00–10:00"></div>
+      <div class="form-group"><label class="form-label">כותרת</label><input id="f1" class="form-ctrl" type="text"></div>
+      <div class="form-group"><label class="form-label">תיאור</label><textarea id="f2" class="form-ctrl"></textarea></div>`;
+  }else if(mode==='addProcedure'){
+    document.getElementById('modal-title').textContent='+ נוהל חדש';
+    body.innerHTML=`
+      <div class="form-group"><label class="form-label">שם הנוהל</label><input id="f0" class="form-ctrl" type="text"></div>
+      <div class="form-group"><label class="form-label">שלבים (שורה לכל שלב)</label><textarea id="f1" class="form-ctrl" rows="5" placeholder="שלב ראשון&#10;שלב שני"></textarea></div>`;
+  }else if(mode==='addPortal'){
+    document.getElementById('modal-title').textContent='+ פורטל חדש';
+    body.innerHTML=`
+      <div class="form-group"><label class="form-label">שם</label><input id="f0" class="form-ctrl" type="text"></div>
+      <div class="form-group"><label class="form-label">כתובת</label><input id="f1" class="form-ctrl" type="text" placeholder="https://"></div>
+      <div class="form-group"><label class="form-label">תדירות</label><select id="f2" class="form-ctrl"><option>יומי</option><option>שבועי</option><option>לפי צורך</option></select></div>
+      <div class="form-group"><label class="form-label">הערות</label><input id="f3" class="form-ctrl" type="text"></div>`;
+  }
+  document.getElementById('modal-overlay').style.display='flex';
+  setTimeout(()=>document.getElementById('f0')&&document.getElementById('f0').focus(),50);
+}
+function closeModal(){document.getElementById('modal-overlay').style.display='none';modalMode=null;}
+function overlayClick(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+function saveModal(){
+  if(modalMode==='changePw'){saveChangePw();return;}
+  if(modalMode==='editAtt'){saveAttEdit();return;}
+  if(modalMode==='addWorkday'){
+    const t=(document.getElementById('f1').value||'').trim();if(!t){alert('נא להזין כותרת');return;}
+    DB.workday.push({id:uid(),time:(document.getElementById('f0').value||'').trim(),title:t,desc:(document.getElementById('f2').value||'').trim()});
+    saveDB();renderWorkday();closeModal();toast('✔ משימה נוספה');
+  }else if(modalMode==='addProcedure'){
+    const n=(document.getElementById('f0').value||'').trim();if(!n){alert('נא להזין שם');return;}
+    getUCDB().procedures.push({id:uid(),name:n,steps:(document.getElementById('f1').value||'').trim().split('\n').map(s=>s.trim()).filter(Boolean)||['שלב ראשון']});
+    saveDB();renderProcedures();closeModal();toast('✔ נוהל נוסף');
+  }else if(modalMode==='addPortal'){
+    const n=(document.getElementById('f0').value||'').trim();if(!n){alert('נא להזין שם');return;}
+    getUCDB().portals.push({id:uid(),name:n,url:(document.getElementById('f1').value||'').trim(),freq:document.getElementById('f2').value,notes:(document.getElementById('f3').value||'').trim()});
+    saveDB();renderPortals();closeModal();toast('✔ פורטל נוסף');
+  }
+}
+
+/* ══════════ BACKUP ══════════ */
+function exportData(){if(!isAdmin)return;const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`referent_backup_${todayStr()}.json`;a.click();toast('✔ גיבוי הורד');}
+function importData(e){if(!isAdmin)return;const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const imp=JSON.parse(ev.target.result);if(!imp.workday||!imp.procedures||!imp.portals){alert('קובץ לא תקין');return;}imp.users=imp.users||DB.users;DB=imp;ensureAdmin();saveDB();renderAll();toast('✔ נתונים יובאו');}catch{alert('שגיאה');}};r.readAsText(file);e.target.value='';}
+
+/* ══════════ RENDER ALL ══════════ */
+function renderAll(){renderJournal();renderProcedures();renderPortals();}
+
+/* ══�
