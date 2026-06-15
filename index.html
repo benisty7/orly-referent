@@ -859,7 +859,8 @@ function fbConnect(){
             inc.userContent[uid]={...inc.userContent[uid],dailyLog:mergedDL};
           }
         });
-        if(!inc.attendance)inc.attendance=DB.attendance||{};
+        // Merge attendance: deep merge per user per date — prefer entry with more data (fixes race condition on refresh)
+        inc.attendance=mergeAttendance(DB.attendance,inc.attendance);
         if(!inc.chkState)inc.chkState=DB.chkState||{};
         DB=inc;
         ensureAdmin();
@@ -1321,6 +1322,23 @@ function calcAttMins(ci,co){if(!ci||!co)return 0;const[h1,m1]=ci.split(':').map(
 function fmtMins(m){const h=Math.floor(m/60),mm=m%60;return h+':'+String(mm).padStart(2,'0');}
 function nowTime(){const n=new Date();return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
 function getUserAtt(uid2){if(!DB.attendance[uid2])DB.attendance[uid2]={};return DB.attendance[uid2];}
+/* Merge attendance deep: for each user+date prefer the entry with more data.
+   Fixes race condition: user clocks in → page refresh before Firebase confirms save. */
+function mergeAttendance(local,remote){
+  const merged=JSON.parse(JSON.stringify(remote||{}));
+  Object.keys(local||{}).forEach(function(u){
+    if(!merged[u]){merged[u]=local[u];return;}
+    Object.keys(local[u]).forEach(function(d){
+      if(!merged[u][d]){merged[u][d]=local[u][d];return;}
+      // Both have this date — keep whichever field is non-empty
+      merged[u][d]={
+        clockIn:merged[u][d].clockIn||local[u][d].clockIn||null,
+        clockOut:merged[u][d].clockOut||local[u][d].clockOut||null
+      };
+    });
+  });
+  return merged;
+}
 
 function doClock(type){
   if(!CU)return;
@@ -1637,6 +1655,8 @@ initDB();
               inc.userContent[uid]={...inc.userContent[uid],dailyLog:mergedDL};
             }
           });
+          // Merge attendance — local wins per date to survive race condition on refresh
+          inc.attendance=mergeAttendance(DB.attendance,inc.attendance);
           DB=inc;ensureAdmin();localStorage.setItem(DB_KEY,JSON.stringify(DB));
         }
       }
