@@ -109,11 +109,19 @@ body{font-family:'Heebo',sans-serif;direction:rtl;background:#eef2f7;color:var(-
 /* WORKDAY tasks */
 .wd-item{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:start;background:#fff;border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px;margin-bottom:6px;transition:border-color .2s,box-shadow .2s}
 .wd-item:hover{border-color:var(--p2);box-shadow:0 2px 8px rgba(46,117,182,.1)}
-.wd-item.done-task{opacity:.55;background:#f8fffd}
 .wd-drag-handle{color:#ccc;font-size:1.1rem;cursor:grab;user-select:none;padding-top:1px;line-height:1}
 .wd-drag-handle:hover{color:#999}
 .wd-item.drag-over{border-top:3px solid var(--p2);opacity:.75}
 .wd-item.dragging{opacity:.35;cursor:grabbing}
+.portal-username-row{display:flex;align-items:center;gap:6px;margin:7px 0 4px;border-top:1px solid #f3f4f6;padding-top:6px}
+.portal-username-lbl{font-size:.73rem;color:var(--muted);white-space:nowrap;flex-shrink:0}
+.portal-user-input{flex:1;border:none;border-bottom:1px solid #e5e7eb;outline:none;background:transparent;font-family:inherit;font-size:.8rem;direction:ltr;padding:2px 4px;color:#374151;min-width:0}
+.portal-user-input:focus{border-bottom-color:var(--p2)}
+.portal-freetext-area{margin-top:6px;border-top:1px solid #f3f4f6;padding-top:5px}
+.portal-freetext-input{display:block;width:100%;box-sizing:border-box;border:none;border-bottom:1px solid #f0f0f0;outline:none;background:transparent;font-family:inherit;font-size:.78rem;direction:rtl;padding:3px 4px;color:#374151;margin-bottom:2px}
+.portal-freetext-input:focus{border-bottom-color:var(--p2);background:#fafbff}
+.portal-freetext-input::placeholder{color:#d1d5db}
+.wd-item.done-task{opacity:.55;background:#f8fffd}
 .wd-check-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:2px}
 .wd-check{width:17px;height:17px;cursor:pointer;accent-color:var(--p2)}
 .wd-time{background:var(--p1);color:#fff;padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:700;white-space:nowrap}
@@ -856,11 +864,11 @@ function fbConnect(){
           if(!inc.userContent[uid]){inc.userContent[uid]=DB.userContent[uid];}
           else{
             const mergedDL=Object.assign({},DB.userContent[uid].dailyLog||{},inc.userContent[uid].dailyLog||{});
-            inc.userContent[uid]={...inc.userContent[uid],dailyLog:mergedDL};
+            const mergedPD=Object.assign({},DB.userContent[uid].portalData||{},inc.userContent[uid].portalData||{});
+            inc.userContent[uid]={...inc.userContent[uid],dailyLog:mergedDL,portalData:mergedPD};
           }
         });
-        // Merge attendance: deep merge per user per date — prefer entry with more data (fixes race condition on refresh)
-        inc.attendance=mergeAttendance(DB.attendance,inc.attendance);
+        inc.attendance=mergeAttendance(DB.attendance||{},inc.attendance||{});
         if(!inc.chkState)inc.chkState=DB.chkState||{};
         DB=inc;
         ensureAdmin();
@@ -1022,10 +1030,9 @@ function renderWorkday(){
   const na=document.getElementById('wd-note-area');na.value=log.note||'';
   document.getElementById('wd-list').innerHTML=DB.workday.map(w=>{
     const chk=log.checked.includes(w.id);
-    return`<div class="wd-item${chk?' done-task':''}" data-id="${w.id}"
-      ${isAdmin?'draggable="true" ondragstart="wdDragStart(event)" ondragover="wdDragOver(event)" ondrop="wdDrop(event)" ondragend="wdDragEnd(event)"':''}
-    >
-      ${isAdmin?'<span class="wd-drag-handle" title="גרור לשינוי סדר">⠿</span>':''}
+    return`<div class="wd-item${chk?' done-task':''}" draggable="${isAdmin?'true':'false'}" data-wid="${w.id}"
+      ondragstart="wdDragStart(event,${w.id})" ondragover="wdDragOver(event)" ondrop="wdDrop(event,${w.id})" ondragend="wdDragEnd(event)">
+      ${isAdmin?`<span class="wd-drag-handle" title="גרור לשינוי סדר">⠿</span>`:'<span></span>'}
       <div class="wd-check-wrap">
         <input class="wd-check" type="checkbox" ${chk?'checked':''} ${!canCheck?'disabled':''}
                onchange="toggleWdTask(${w.id},this.checked)">
@@ -1042,35 +1049,11 @@ function toggleWdTask(id,chk){const l=getDayLog(calDate);chk?(l.checked.includes
 function saveWdNote(v){getDayLog(calDate).note=v;saveDB();}
 function wdUpd(id,f,v){if(!isAdmin)return;const w=DB.workday.find(x=>x.id===id);if(w){w[f]=v.trim();saveDB();}}
 function wdDel(id){if(!isAdmin||!confirm('למחוק?'))return;DB.workday=DB.workday.filter(x=>x.id!==id);saveDB();renderWorkday();}
-
-/* ══ WORKDAY DRAG-AND-DROP ══ */
 let _wdDragId=null;
-function wdDragStart(e){
-  _wdDragId=+e.currentTarget.dataset.id;
-  e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed='move';
-}
-function wdDragOver(e){
-  e.preventDefault();
-  e.dataTransfer.dropEffect='move';
-  document.querySelectorAll('.wd-item').forEach(el=>el.classList.remove('drag-over'));
-  e.currentTarget.classList.add('drag-over');
-}
-function wdDrop(e){
-  e.preventDefault();
-  const toId=+e.currentTarget.dataset.id;
-  if(!_wdDragId||_wdDragId===toId)return;
-  const fromIdx=DB.workday.findIndex(x=>x.id===_wdDragId);
-  const toIdx=DB.workday.findIndex(x=>x.id===toId);
-  if(fromIdx<0||toIdx<0)return;
-  const [item]=DB.workday.splice(fromIdx,1);
-  DB.workday.splice(toIdx,0,item);
-  saveDB();renderWorkday();toast('↕ סדר המשימות עודכן');
-}
-function wdDragEnd(e){
-  _wdDragId=null;
-  document.querySelectorAll('.wd-item').forEach(el=>{el.classList.remove('drag-over','dragging');});
-}
+function wdDragStart(e,id){if(!isAdmin)return;_wdDragId=id;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
+function wdDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';document.querySelectorAll('.wd-item').forEach(el=>el.classList.remove('drag-over'));e.currentTarget.classList.add('drag-over');}
+function wdDrop(e,toId){e.preventDefault();document.querySelectorAll('.wd-item').forEach(el=>el.classList.remove('drag-over','dragging'));if(_wdDragId===null||_wdDragId===toId)return;const arr=DB.workday;const fi=arr.findIndex(x=>x.id===_wdDragId),ti=arr.findIndex(x=>x.id===toId);if(fi<0||ti<0)return;const [item]=arr.splice(fi,1);arr.splice(ti,0,item);_wdDragId=null;saveDB();renderWorkday();}
+function wdDragEnd(e){e.currentTarget.classList.remove('dragging');document.querySelectorAll('.wd-item').forEach(el=>el.classList.remove('drag-over'));_wdDragId=null;}
 
 /* ══════════ CHECKLISTS (right column, per-day) ══════════ */
 function hasValidChk(c){return c&&typeof c==='object'&&!Array.isArray(c)&&c.morning&&c.evening;}
@@ -1215,14 +1198,26 @@ function renderPortals(){
   const portBar=document.getElementById('port-admin-bar');
   if(portBar)portBar.style.display='none';
   try{
-  document.getElementById('portals-grid').innerHTML=getUCDB().portals.map(p=>`
-    <div class="portal-card">
+  document.getElementById('portals-grid').innerHTML=getUCDB().portals.map(p=>{
+    const pud=getPortalUD(p.id);
+    return`<div class="portal-card">
       <div class="portal-top">
         <div class="portal-name" ${isAdmin?`contenteditable="true" onblur="portUpd(${p.id},'name',this.innerText)"`:''}>${esc(p.name)}</div>
         <span class="badge ${fCls(p.freq)}" id="pb-${p.id}">${esc(p.freq)}</span>
       </div>
       <div class="portal-url" ${isAdmin?`contenteditable="true" onblur="portUpd(${p.id},'url',this.innerText)"`:''}>${esc(p.url)}</div>
       <div class="portal-notes" ${isAdmin?`contenteditable="true" onblur="portUpd(${p.id},'notes',this.innerText)"`:''}>${esc(p.notes)}</div>
+      <div class="portal-username-row">
+        <span class="portal-username-lbl">👤 שם משתמש:</span>
+        <input type="text" class="portal-user-input" value="${esc(pud.username)}" placeholder="הזן שם משתמש..."
+          onchange="portUserUpd(${p.id},this.value)"
+          oninput="portUserUpd(${p.id},this.value)">
+      </div>
+      <div class="portal-freetext-area">
+        ${pud.freeText.map((t,i)=>`<input type="text" class="portal-freetext-input" value="${esc(t)}" placeholder="שורה ${i+1}..."
+          onchange="portFreeUpd(${p.id},${i},this.value)"
+          oninput="portFreeUpd(${p.id},${i},this.value)">`).join('')}
+      </div>
       <div class="portal-bottom">
         <button class="btn btn-primary" style="font-size:.77rem;padding:5px 11px" onclick="openUrl(${p.id})">🔗 פתח</button>
         <select ${isAdmin?`onchange="portFreq(${p.id},this.value)"`:''} ${isAdmin?'':'disabled'}>
@@ -1232,13 +1227,24 @@ function renderPortals(){
         </select>
         ${isAdmin?`<button class="btn-del" onclick="portDel(${p.id})">🗑</button>`:''}
       </div>
-    </div>`).join('');
+    </div>`;}).join('');
   }catch(e){const el=document.getElementById('portals-grid');if(el)el.innerHTML='<p style="color:red">❌ שגיאה: '+e.message+'</p>';}
 }
 function openUrl(id){const p=getUCDB().portals.find(x=>x.id===id);if(p&&p.url)window.open(p.url,'_blank');}
 function portUpd(id,f,v){if(!isAdmin)return;const p=getUCDB().portals.find(x=>x.id===id);if(p){p[f]=v.trim();saveDB();}}
 function portFreq(id,v){if(!isAdmin)return;const p=getUCDB().portals.find(x=>x.id===id);if(p){p.freq=v;saveDB();const b=document.getElementById('pb-'+id);if(b){b.textContent=v;b.className='badge '+fCls(v);}}}
 function portDel(id){if(!isAdmin||!confirm('למחוק?'))return;const _ptdb=getUCDB();_ptdb.portals=_ptdb.portals.filter(x=>x.id!==id);saveDB();renderPortals();}
+function getPortalUD(pid){
+  if(!CU)return{username:'',freeText:['','','','']};
+  const uc=ensureUserContent(CU.id);
+  if(!uc.portalData)uc.portalData={};
+  if(!uc.portalData[pid])uc.portalData[pid]={username:'',freeText:['','','','']};
+  const pd=uc.portalData[pid];
+  if(!Array.isArray(pd.freeText)||pd.freeText.length<4)pd.freeText=[...(pd.freeText||[]),...Array(4).fill('')].slice(0,4);
+  return pd;
+}
+function portUserUpd(id,v){if(!CU)return;getPortalUD(id).username=v;saveDB();}
+function portFreeUpd(id,i,v){if(!CU)return;getPortalUD(id).freeText[i]=v;saveDB();}
 
 /* ══════════ HISTORY ══════════ */
 function histMove(dir){histWeekOffset+=dir;renderHistory();}
@@ -1322,15 +1328,12 @@ function calcAttMins(ci,co){if(!ci||!co)return 0;const[h1,m1]=ci.split(':').map(
 function fmtMins(m){const h=Math.floor(m/60),mm=m%60;return h+':'+String(mm).padStart(2,'0');}
 function nowTime(){const n=new Date();return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
 function getUserAtt(uid2){if(!DB.attendance[uid2])DB.attendance[uid2]={};return DB.attendance[uid2];}
-/* Merge attendance deep: for each user+date prefer the entry with more data.
-   Fixes race condition: user clocks in → page refresh before Firebase confirms save. */
 function mergeAttendance(local,remote){
   const merged=JSON.parse(JSON.stringify(remote||{}));
   Object.keys(local||{}).forEach(function(u){
     if(!merged[u]){merged[u]=local[u];return;}
     Object.keys(local[u]).forEach(function(d){
       if(!merged[u][d]){merged[u][d]=local[u][d];return;}
-      // Both have this date — keep whichever field is non-empty
       merged[u][d]={
         clockIn:merged[u][d].clockIn||local[u][d].clockIn||null,
         clockOut:merged[u][d].clockOut||local[u][d].clockOut||null
@@ -1652,11 +1655,11 @@ initDB();
             if(!inc.userContent[uid]){inc.userContent[uid]=localUC[uid];}
             else{
               const mergedDL=Object.assign({},inc.userContent[uid].dailyLog||{},localUC[uid].dailyLog||{});
-              inc.userContent[uid]={...inc.userContent[uid],dailyLog:mergedDL};
+              const mergedPD=Object.assign({},inc.userContent[uid].portalData||{},localUC[uid].portalData||{});
+              inc.userContent[uid]={...inc.userContent[uid],dailyLog:mergedDL,portalData:mergedPD};
             }
           });
-          // Merge attendance — local wins per date to survive race condition on refresh
-          inc.attendance=mergeAttendance(DB.attendance,inc.attendance);
+          inc.attendance=mergeAttendance(DB.attendance||{},inc.attendance||{});
           DB=inc;ensureAdmin();localStorage.setItem(DB_KEY,JSON.stringify(DB));
         }
       }
