@@ -692,7 +692,7 @@ const DEF_CHK={
 
 /* ══════════ STATE ══════════ */
 let DB={},CU=null,isAdmin=false,calDate=todayStr(),histWeekOffset=0,modalMode=null,histSelDate=null;
-let fbApp=null,fbRef=null,fbSyncing=false;
+let fbApp=null,fbRef=null,fbSyncing=false,fbPendingPush=false;
 
 /* ══════════ UTILS ══════════ */
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -874,7 +874,7 @@ function fbConnect(){
         ensureAdmin();
         localStorage.setItem(DB_KEY,JSON.stringify(DB));
         if(CU){renderAll();renderChecklists();updateClockUI();}
-        }finally{fbSyncing=false;}
+        }finally{fbSyncing=false;if(fbPendingPush){fbPendingPush=false;setTimeout(fbPush,50);}}
       } else {
         // Firebase empty → push current DB (with defaults)
         fbPushForce();
@@ -888,7 +888,7 @@ function fbConnect(){
   }catch(e){setSyncStatus('err','שגיאה: '+e.message);toast('שגיאת Firebase: '+e.message);}
 }
 function fbDisconnect(){if(fbApp){try{fbApp.delete();}catch(e){}}fbApp=null;fbRef=null;setSyncStatus('off','לא מחובר');document.getElementById('fb-btn-connect').style.display='';document.getElementById('fb-btn-disc').style.display='none';document.getElementById('fb-btn-push').style.display='none';document.getElementById('sync-wrap').style.display='none';}
-function fbPush(){if(!fbRef||fbSyncing)return;fbRef.set(JSON.parse(JSON.stringify(DB))).catch(()=>setSyncStatus('err','שגיאת שמירה'));}
+function fbPush(){if(!fbRef)return;if(fbSyncing){fbPendingPush=true;return;}fbRef.set(JSON.parse(JSON.stringify(DB))).catch(()=>setSyncStatus('err','שגיאת שמירה'));}
 function fbPushForce(){if(!fbRef)return;fbRef.set(JSON.parse(JSON.stringify(DB)));}
 function fbPushNow(){if(!fbRef){toast('Firebase לא מחובר');return;}setSyncStatus('busy','שולח...');fbRef.set(JSON.parse(JSON.stringify(DB))).then(()=>{setSyncStatus('ok','מסונכרן ✔');toast('✔ נשלח לענן');}).catch(()=>setSyncStatus('err','שגיאה'));}
 function setSyncStatus(type,txt){['sync-dot','fb-dot'].forEach(id=>{const el=document.getElementById(id);if(el){el.className='sync-dot sync-'+type;}});const st=document.getElementById('sync-txt');if(st)st.textContent=txt;const fs=document.getElementById('fb-status-txt');if(fs)fs.textContent=txt;}
@@ -1335,8 +1335,8 @@ function mergeAttendance(local,remote){
     Object.keys(local[u]).forEach(function(d){
       if(!merged[u][d]){merged[u][d]=local[u][d];return;}
       merged[u][d]={
-        clockIn:merged[u][d].clockIn||local[u][d].clockIn||null,
-        clockOut:merged[u][d].clockOut||local[u][d].clockOut||null
+        clockIn:local[u][d].clockIn||merged[u][d].clockIn||null,
+        clockOut:local[u][d].clockOut||merged[u][d].clockOut||null
       };
     });
   });
@@ -1608,6 +1608,83 @@ function saveModal(){
 }
 
 /* ══════════ BACKUP ══════════ */
+function exportData(){if(!isAdmin)return;const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`referent_backup_${todayStr()}.json`;a.click();toast('✔ גיבוי הורד');}
+function importData(e){if(!isAdmin)return;const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const imp=JSON.parse(ev.target.result);if(!imp.workday||!imp.procedures||!imp.portals){alert('קובץ לא תקין');return;}imp.users=imp.users||DB.users;DB=imp;ensureAdmin();saveDB();renderAll();toast('✔ נתונים יובאו');}catch{alert('שגיאה');}};r.readAsText(file);e.target.value='';}
+
+/* ══════════ RENDER ALL ══════════ */
+function renderAll(){renderJournal();renderProcedures();renderPortals();}
+
+/* ══════════ KEYBOARD ══════════ */
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeModal();
+  if(!e.target.closest('[contenteditable]')&&!e.target.closest('input,textarea,select')){
+    if(e.key==='ArrowLeft'&&document.getElementById('tab-journal').classList.contains('active'))calMove(1);
+    if(e.key==='ArrowRight'&&document.getElementById('tab-journal').classList.contains('active'))calMove(-1);
+  }
+});
+
+/* ══════════ START ══════════ */
+initDB();
+
+/* ══ PRE-LOGIN FIREBASE SYNC ══
+   מסנכרן נתונים מהענן לפני הצגת מסך הכניסה,
+   כך שסיסמאות ומשתמשים יהיו עדכניים בכל מחשב */
+(function preLoginSync(){
+  const cfg=getFbConfig();
+  const errEl=document.getElementById('li-err');
+  if(!cfg||!cfg.apiKey||!cfg.databaseURL){showLoginOrSession();return;}
+  if(errEl)errEl.textContent='⏳ מתחבר לענן...';
+  let done=false;
+  const to=setTimeout(()=>{if(!done){if(errEl)errEl.textContent='';showLoginOrSession();}},4000);
+  try{
+    const tmpApp=firebase.initializeApp(cfg,'pre_'+Date.now());
+    const ref=tmpApp.database().ref('agencies/'+cfg.workspaceKey+'/data');
+    ref.once('value',snap=>{
+      clearTimeout(to);done=true;
+      const val=snap.val();
+      if(val){
+        const inc=typeof val==='string'?JSON.parse(val):val;
+        if(inc&&inc.users){
+          if(!inc.procedures||!inc.procedures.length)inc.procedures=JSON.parse(JSON.stringify(DEF_PROC));
+          if(!inc.portals||!inc.portals.length)inc.portals=JSON.parse(JSON.stringify(DEF_PORT));
+          if(!inc.workday||!inc.workday.length)inc.workday=JSON.parse(JSON.stringify(DEF_WD));
+          if(!hasValidChk(inc.checklistTemplates))inc.checklistTemplates=JSON.parse(JSON.stringify(DEF_CHK));
+          if(!inc.userContent)inc.userContent={};
+          const localUC=DB.userContent||{};
+          Object.keys(localUC).forEach(uid=>{
+            if(!inc.userContent[uid]){inc.userContent[uid]=localUC[uid];}
+            else{
+              const mergedDL=Object.assign({},inc.userContent[uid].dailyLog||{},localUC[uid].dailyLog||{});
+              const mergedPD=Object.assign({},inc.userContent[uid].portalData||{},localUC[uid].portalData||{});
+              inc.userContent[uid]={...inc.userContent[uid],dailyLog:mergedDL,portalData:mergedPD};
+            }
+          });
+          inc.attendance=mergeAttendance(DB.attendance||{},inc.attendance||{});
+          DB=inc;ensureAdmin();localStorage.setItem(DB_KEY,JSON.stringify(DB));
+        }
+      }
+      try{tmpApp.delete();}catch(e){}
+      if(errEl)errEl.textContent='';
+      showLoginOrSession();
+    },()=>{clearTimeout(to);done=true;try{tmpApp.delete();}catch(e){}if(errEl)errEl.textContent='';showLoginOrSession();});
+  }catch(e){clearTimeout(to);if(errEl)errEl.textContent='';showLoginOrSession();}
+})();
+
+function showLoginOrSession(){
+  if(!DB.procedures||!DB.procedures.length)DB.procedures=JSON.parse(JSON.stringify(DEF_PROC));
+  if(!DB.portals||!DB.portals.length)DB.portals=JSON.parse(JSON.stringify(DEF_PORT));
+  if(!DB.workday||!DB.workday.length)DB.workday=JSON.parse(JSON.stringify(DEF_WD));
+  if(!hasValidChk(DB.checklistTemplates))DB.checklistTemplates=JSON.parse(JSON.stringify(DEF_CHK));
+  localStorage.setItem(DB_KEY,JSON.stringify(DB));
+  let u=null;
+  const ps=localStorage.getItem('ref_sess_persist');
+  if(ps){try{const {id}=JSON.parse(ps);u=DB.users.find(x=>x.id===id);}catch{}}
+  if(!u){const ss=sessionStorage.getItem('ref_sess');if(ss){try{const {id}=JSON.parse(ss);u=DB.users.find(x=>x.id===id);}catch{}}}
+  if(u)startApp(u);
+}
+</script>
+</body>
+</html>
 function exportData(){if(!isAdmin)return;const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`referent_backup_${todayStr()}.json`;a.click();toast('✔ גיבוי הורד');}
 function importData(e){if(!isAdmin)return;const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const imp=JSON.parse(ev.target.result);if(!imp.workday||!imp.procedures||!imp.portals){alert('קובץ לא תקין');return;}imp.users=imp.users||DB.users;DB=imp;ensureAdmin();saveDB();renderAll();toast('✔ נתונים יובאו');}catch{alert('שגיאה');}};r.readAsText(file);e.target.value='';}
 
