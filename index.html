@@ -1496,9 +1496,9 @@ function saveAttEdit(){
   const ua=getUserAtt(saveUid);
   if(!ua[ds])ua[ds]={};
   const nowTs=Date.now();
-  if(ni){ua[ds].clockIn=ni;ua[ds].clockInTs=nowTs;}else{delete ua[ds].clockIn;delete ua[ds].clockInTs;}
-  if(no){ua[ds].clockOut=no;ua[ds].clockOutTs=nowTs;}else{delete ua[ds].clockOut;delete ua[ds].clockOutTs;}
-  if(!ni&&!no)delete ua[ds];
+  if(ni){ua[ds].clockIn=ni;ua[ds].clockInTs=nowTs;}else{delete ua[ds].clockIn;ua[ds].clockInTs=nowTs;}
+  if(no){ua[ds].clockOut=no;ua[ds].clockOutTs=nowTs;}else{delete ua[ds].clockOut;ua[ds].clockOutTs=nowTs;}
+  if(!ni&&!no){ua[ds].clockInTs=nowTs;ua[ds].clockOutTs=nowTs;}
   saveDB();closeModal();renderAttendance();
   if(ds===todayStr())updateClockUI();
   toast('\u2714 \u05e9\u05e2\u05d5\u05ea \u05e2\u05d5\u05d3\u05db\u05e0\u05d5');
