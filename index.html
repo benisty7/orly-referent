@@ -1678,6 +1678,10 @@ function showLoginOrSession(){
   if(!DB.portals||!DB.portals.length)DB.portals=JSON.parse(JSON.stringify(DEF_PORT));
   if(!DB.workday||!DB.workday.length)DB.workday=JSON.parse(JSON.stringify(DEF_WD));
   if(!hasValidChk(DB.checklistTemplates))DB.checklistTemplates=JSON.parse(JSON.stringify(DEF_CHK));
+  localStorage.setItem(DB_KEY,JSON.stringify(DB));
+  let u=null;
+  const ps=localStorage.getItem('ref_sess_persist');
+  if(ps){try{const {id}=JSON.parse(ps);u=DB.users.find(x=>x.id===id);}catch{}}
   if(!u){const ss=sessionStorage.getItem('ref_sess');if(ss){try{const {id}=JSON.parse(ss);u=DB.users.find(x=>x.id===id);}catch{}}}
   if(u)startApp(u);
 }
