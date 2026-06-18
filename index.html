@@ -793,6 +793,7 @@ function getPeriodChk(key){
   let pk;
   if(tpl.scope==='weekly') pk=(CU?CU.id:'g')+'_weekly_'+isoWeek(calDate);
   else pk=(CU?CU.id:'g')+'_monthly_'+isoMonth(calDate);
+  if(!DB.chkState)DB.chkState={};
   if(!DB.chkState[pk])DB.chkState[pk]=[];
   return DB.chkState[pk];
 }
@@ -924,9 +925,9 @@ function startApp(user){
   document.querySelector('.main').classList.toggle('readonly-mode',!isAdmin);
   ['wd-btn-add','proc-btn-add','portal-btn-add'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=isAdmin?'':'none';});
   calDate=todayStr();histWeekOffset=0;histSelDate=todayStr();attMonthOffset=0;
-  renderAll();
-  updateClockUI();
-  if(isAdmin)renderFbSettings();
+  try{renderAll();}catch(e){console.error('renderAll error:',e);}
+  try{updateClockUI();}catch(e){console.error('updateClockUI error:',e);}
+  if(isAdmin){try{renderFbSettings();}catch(e){console.error('renderFbSettings error:',e);}}
   tryAutoConnect();
   // ══ BACKUP RESTORE: 3 שניות אחרי הכניסה — אחרי שFirebase סיים — בדוק ותקן
   setTimeout(function(){
@@ -1677,10 +1678,6 @@ function showLoginOrSession(){
   if(!DB.portals||!DB.portals.length)DB.portals=JSON.parse(JSON.stringify(DEF_PORT));
   if(!DB.workday||!DB.workday.length)DB.workday=JSON.parse(JSON.stringify(DEF_WD));
   if(!hasValidChk(DB.checklistTemplates))DB.checklistTemplates=JSON.parse(JSON.stringify(DEF_CHK));
-  localStorage.setItem(DB_KEY,JSON.stringify(DB));
-  let u=null;
-  const ps=localStorage.getItem('ref_sess_persist');
-  if(ps){try{const {id}=JSON.parse(ps);u=DB.users.find(x=>x.id===id);}catch{}}
   if(!u){const ss=sessionStorage.getItem('ref_sess');if(ss){try{const {id}=JSON.parse(ss);u=DB.users.find(x=>x.id===id);}catch{}}}
   if(u)startApp(u);
 }
