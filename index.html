@@ -1337,10 +1337,20 @@ function mergeAttendance(local,remote){
     if(!merged[u]){merged[u]=local[u];return;}
     Object.keys(local[u]).forEach(function(d){
       if(!merged[u][d]){merged[u][d]=local[u][d];return;}
+      // timestamp-wins: מי שעדכן אחרון מנצח
+      const lInTs=local[u][d].clockInTs||0, rInTs=merged[u][d].clockInTs||0;
+      const lOutTs=local[u][d].clockOutTs||0, rOutTs=merged[u][d].clockOutTs||0;
       merged[u][d]={
-        clockIn:local[u][d].clockIn||merged[u][d].clockIn||null,
-        clockOut:local[u][d].clockOut||merged[u][d].clockOut||null
+        clockIn:   lInTs>=rInTs  ? local[u][d].clockIn  : merged[u][d].clockIn,
+        clockInTs: Math.max(lInTs,rInTs)||undefined,
+        clockOut:  lOutTs>=rOutTs? local[u][d].clockOut : merged[u][d].clockOut,
+        clockOutTs:Math.max(lOutTs,rOutTs)||undefined
       };
+      // נקה undefined
+      if(!merged[u][d].clockIn)delete merged[u][d].clockIn;
+      if(!merged[u][d].clockInTs)delete merged[u][d].clockInTs;
+      if(!merged[u][d].clockOut)delete merged[u][d].clockOut;
+      if(!merged[u][d].clockOutTs)delete merged[u][d].clockOutTs;
     });
   });
   return merged;
@@ -1352,8 +1362,8 @@ function doClock(type){
   const today=todayStr(),ua=getUserAtt(CU.id);
   if(!ua[today])ua[today]={};
   const entry=ua[today],tn=nowTime();
-  if(type==='in'){if(entry.clockIn){toast('כניסה כבר נרשמה היום');return;}entry.clockIn=tn;toast('\u2714 כניסה נרשמה \u2014 '+tn);}
-  else{if(!entry.clockIn){toast('לא נרשמה כניסה להיום');return;}if(entry.clockOut){toast('יציאה כבר נרשמה היום');return;}entry.clockOut=tn;toast('\u2714 יציאה נרשמה \u2014 '+tn);}
+  if(type==='in'){if(entry.clockIn){toast('כניסה כבר נרשמה היום');return;}entry.clockIn=tn;entry.clockInTs=Date.now();toast('\u2714 כניסה נרשמה \u2014 '+tn);}
+  else{if(!entry.clockIn){toast('לא נרשמה כניסה להיום');return;}if(entry.clockOut){toast('יציאה כבר נרשמה היום');return;}entry.clockOut=tn;entry.clockOutTs=Date.now();toast('\u2714 יציאה נרשמה \u2014 '+tn);}
   saveDB();updateClockUI();
 }
 
@@ -1485,8 +1495,9 @@ function saveAttEdit(){
   const saveUid=uidEl?uidEl.value:(attViewUserId||CU.id);
   const ua=getUserAtt(saveUid);
   if(!ua[ds])ua[ds]={};
-  if(ni)ua[ds].clockIn=ni;else delete ua[ds].clockIn;
-  if(no)ua[ds].clockOut=no;else delete ua[ds].clockOut;
+  const nowTs=Date.now();
+  if(ni){ua[ds].clockIn=ni;ua[ds].clockInTs=nowTs;}else{delete ua[ds].clockIn;delete ua[ds].clockInTs;}
+  if(no){ua[ds].clockOut=no;ua[ds].clockOutTs=nowTs;}else{delete ua[ds].clockOut;delete ua[ds].clockOutTs;}
   if(!ni&&!no)delete ua[ds];
   saveDB();closeModal();renderAttendance();
   if(ds===todayStr())updateClockUI();
