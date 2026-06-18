@@ -868,7 +868,9 @@ function fbConnect(){
             inc.userContent[uid]={...inc.userContent[uid],dailyLog:mergedDL,portalData:mergedPD};
           }
         });
+        const origAttStr=JSON.stringify(inc.attendance||{});
         inc.attendance=mergeAttendance(DB.attendance||{},inc.attendance||{});
+        if(JSON.stringify(inc.attendance)!==origAttStr)fbPendingPush=true;
         if(!inc.chkState)inc.chkState=DB.chkState||{};
         DB=inc;
         ensureAdmin();
@@ -1679,12 +1681,6 @@ function showLoginOrSession(){
   let u=null;
   const ps=localStorage.getItem('ref_sess_persist');
   if(ps){try{const {id}=JSON.parse(ps);u=DB.users.find(x=>x.id===id);}catch{}}
-  if(!u){const ss=sessionStorage.getItem('ref_sess');if(ss){try{const {id}=JSON.parse(ss);u=DB.users.find(x=>x.id===id);}catch{}}}
-  if(u)startApp(u);
-}
-</script>
-</body>
-</html>
 function exportData(){if(!isAdmin)return;const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`referent_backup_${todayStr()}.json`;a.click();toast('✔ גיבוי הורד');}
 function importData(e){if(!isAdmin)return;const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const imp=JSON.parse(ev.target.result);if(!imp.workday||!imp.procedures||!imp.portals){alert('קובץ לא תקין');return;}imp.users=imp.users||DB.users;DB=imp;ensureAdmin();saveDB();renderAll();toast('✔ נתונים יובאו');}catch{alert('שגיאה');}};r.readAsText(file);e.target.value='';}
 
