@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <style>
 :root{
@@ -843,6 +844,7 @@ function fbConnect(){
     setSyncStatus('busy','מתחבר...');
     if(fbApp){try{fbApp.delete();}catch(e){}}
     fbApp=firebase.initializeApp({apiKey:cfg.apiKey,databaseURL:cfg.databaseURL,projectId:cfg.projectId},'shirel_'+Date.now());
+    firebase.auth(fbApp).signInAnonymously().catch(function(e){console.warn('anon auth failed:',e.message);});
     const db=firebase.database(fbApp);
     fbRef=db.ref('agencies/'+cfg.workspaceKey+'/data');
     fbRef.on('value',snap=>{
@@ -1652,6 +1654,7 @@ initDB();
   const to=setTimeout(()=>{if(!done){if(errEl)errEl.textContent='';showLoginOrSession();}},4000);
   try{
     const tmpApp=firebase.initializeApp(cfg,'pre_'+Date.now());
+    firebase.auth(tmpApp).signInAnonymously().catch(function(){});
     const ref=tmpApp.database().ref('agencies/'+cfg.workspaceKey+'/data');
     ref.once('value',snap=>{
       clearTimeout(to);done=true;
