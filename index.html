@@ -844,7 +844,11 @@ function fbConnect(){
     setSyncStatus('busy','מתחבר...');
     if(fbApp){try{fbApp.delete();}catch(e){}}
     fbApp=firebase.initializeApp({apiKey:cfg.apiKey,databaseURL:cfg.databaseURL,projectId:cfg.projectId},'shirel_'+Date.now());
-    firebase.auth(fbApp).signInAnonymously().catch(function(e){console.warn('anon auth failed:',e.message);});
+    document.getElementById('fb-btn-connect').style.display='none';
+    document.getElementById('fb-btn-disc').style.display='';
+    document.getElementById('fb-btn-push').style.display='';
+    document.getElementById('sync-wrap').style.display='flex';
+    firebase.auth(fbApp).signInAnonymously().then(function(){
     const db=firebase.database(fbApp);
     fbRef=db.ref('agencies/'+cfg.workspaceKey+'/data');
     fbRef.on('value',snap=>{
@@ -886,10 +890,7 @@ function fbConnect(){
       }
       setSyncStatus('ok','מסונכרן ✔');
     },err=>setSyncStatus('err','שגיאה: '+err.code));
-    document.getElementById('fb-btn-connect').style.display='none';
-    document.getElementById('fb-btn-disc').style.display='';
-    document.getElementById('fb-btn-push').style.display='';
-    document.getElementById('sync-wrap').style.display='flex';
+    }).catch(function(e){setSyncStatus('err','שגיאה: '+e.message);toast('שגיאת Firebase: '+e.message);});
   }catch(e){setSyncStatus('err','שגיאה: '+e.message);toast('שגיאת Firebase: '+e.message);}
 }
 function fbDisconnect(){if(fbApp){try{fbApp.delete();}catch(e){}}fbApp=null;fbRef=null;setSyncStatus('off','לא מחובר');document.getElementById('fb-btn-connect').style.display='';document.getElementById('fb-btn-disc').style.display='none';document.getElementById('fb-btn-push').style.display='none';document.getElementById('sync-wrap').style.display='none';}
