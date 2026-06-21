@@ -1654,7 +1654,7 @@ initDB();
   const to=setTimeout(()=>{if(!done){if(errEl)errEl.textContent='';showLoginOrSession();}},4000);
   try{
     const tmpApp=firebase.initializeApp(cfg,'pre_'+Date.now());
-    firebase.auth(tmpApp).signInAnonymously().catch(function(){});
+    firebase.auth(tmpApp).signInAnonymously().then(function(){
     const ref=tmpApp.database().ref('agencies/'+cfg.workspaceKey+'/data');
     ref.once('value',snap=>{
       clearTimeout(to);done=true;
@@ -1684,6 +1684,7 @@ initDB();
       if(errEl)errEl.textContent='';
       showLoginOrSession();
     },()=>{clearTimeout(to);done=true;try{tmpApp.delete();}catch(e){}if(errEl)errEl.textContent='';showLoginOrSession();});
+    }).catch(function(){clearTimeout(to);try{tmpApp.delete();}catch(e){}if(errEl)errEl.textContent='';showLoginOrSession();});
   }catch(e){clearTimeout(to);if(errEl)errEl.textContent='';showLoginOrSession();}
 })();
 
