@@ -281,6 +281,11 @@ textarea.form-ctrl{min-height:80px;resize:vertical}
 .badge-done{background:#e8f5e9;color:#2e7d32;padding:2px 9px;border-radius:10px;font-size:.75rem;font-weight:700}
 .badge-partial{background:#fff8e1;color:#e65100;padding:2px 9px;border-radius:10px;font-size:.75rem;font-weight:700}
 .badge-off{background:#f5f5f5;color:#999;padding:2px 9px;border-radius:10px;font-size:.75rem}
+.badge-holiday{background:#ff9800;color:#fff;padding:2px 9px;border-radius:10px;font-size:.74rem;font-weight:700;display:inline-block;margin-bottom:2px}
+.badge-vacation{background:#43a047;color:#fff;padding:2px 9px;border-radius:10px;font-size:.74rem;font-weight:700;display:inline-block}
+.att-row-holiday td{background:#fffde7!important}
+.att-row-vacation td{background:#e8f5e9!important}
+.att-row-wknd{opacity:.45}
 .clock-status-wrap{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:5px 11px}
 .clock-status-dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0}
 .clock-status-dot.clocked-in{background:#4ade80;animation:pulse .8s infinite}
@@ -560,6 +565,60 @@ const ADMIN_EMAIL='eli@shirel-ins.co.il';
 const DAYS_HE=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 const MONTHS_HE=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 const DB_KEY='ref_db_v5';
+
+/* ══════════ ISRAEL HOLIDAYS ══════════ */
+const IL_HOLIDAYS={
+  /* 2023 */
+  '2023-09-15':'ראש השנה','2023-09-16':'ראש השנה',
+  '2023-09-24':'יום כיפור',
+  '2023-09-29':'סוכות','2023-09-30':'חול המועד סוכות','2023-10-01':'חול המועד סוכות','2023-10-02':'חול המועד סוכות','2023-10-03':'חול המועד סוכות','2023-10-04':'חול המועד סוכות',
+  '2023-10-06':'שמיני עצרת','2023-10-07':'שמחת תורה',
+  '2023-12-07':'חנוכה','2023-12-08':'חנוכה','2023-12-09':'חנוכה','2023-12-10':'חנוכה','2023-12-11':'חנוכה','2023-12-12':'חנוכה','2023-12-13':'חנוכה','2023-12-14':'חנוכה','2023-12-15':'חנוכה',
+  /* 2024 */
+  '2024-03-23':'פורים','2024-03-24':'שושן פורים',
+  '2024-04-22':'פסח','2024-04-23':'חול המועד פסח','2024-04-24':'חול המועד פסח','2024-04-25':'חול המועד פסח','2024-04-26':'חול המועד פסח','2024-04-27':'חול המועד פסח','2024-04-28':'שביעי של פסח',
+  '2024-05-06':'יום השואה',
+  '2024-05-13':'יום הזיכרון','2024-05-14':'יום העצמאות',
+  '2024-06-11':'שבועות','2024-06-12':'שבועות',
+  '2024-10-02':'ראש השנה','2024-10-03':'ראש השנה',
+  '2024-10-11':'יום כיפור',
+  '2024-10-16':'סוכות','2024-10-17':'חול המועד סוכות','2024-10-18':'חול המועד סוכות','2024-10-19':'חול המועד סוכות','2024-10-20':'חול המועד סוכות','2024-10-21':'חול המועד סוכות',
+  '2024-10-23':'שמיני עצרת','2024-10-24':'שמחת תורה',
+  '2024-12-25':'חנוכה','2024-12-26':'חנוכה','2024-12-27':'חנוכה','2024-12-28':'חנוכה','2024-12-29':'חנוכה','2024-12-30':'חנוכה','2024-12-31':'חנוכה',
+  /* 2025 */
+  '2025-01-01':'חנוכה','2025-01-02':'חנוכה',
+  '2025-03-13':'פורים','2025-03-14':'שושן פורים',
+  '2025-04-12':'פסח','2025-04-13':'חול המועד פסח','2025-04-14':'חול המועד פסח','2025-04-15':'חול המועד פסח','2025-04-16':'חול המועד פסח','2025-04-17':'חול המועד פסח','2025-04-18':'שביעי של פסח',
+  '2025-04-24':'יום השואה',
+  '2025-04-30':'יום הזיכרון','2025-05-01':'יום העצמאות',
+  '2025-06-01':'שבועות','2025-06-02':'שבועות',
+  '2025-09-22':'ראש השנה','2025-09-23':'ראש השנה',
+  '2025-10-01':'יום כיפור',
+  '2025-10-06':'סוכות','2025-10-07':'חול המועד סוכות','2025-10-08':'חול המועד סוכות','2025-10-09':'חול המועד סוכות','2025-10-10':'חול המועד סוכות','2025-10-11':'חול המועד סוכות',
+  '2025-10-13':'שמיני עצרת','2025-10-14':'שמחת תורה',
+  '2025-12-14':'חנוכה','2025-12-15':'חנוכה','2025-12-16':'חנוכה','2025-12-17':'חנוכה','2025-12-18':'חנוכה','2025-12-19':'חנוכה','2025-12-20':'חנוכה','2025-12-21':'חנוכה','2025-12-22':'חנוכה',
+  /* 2026 */
+  '2026-03-02':'פורים','2026-03-03':'שושן פורים',
+  '2026-04-01':'פסח','2026-04-02':'חול המועד פסח','2026-04-03':'חול המועד פסח','2026-04-04':'חול המועד פסח','2026-04-05':'חול המועד פסח','2026-04-06':'חול המועד פסח','2026-04-07':'שביעי של פסח',
+  '2026-04-13':'יום השואה',
+  '2026-04-20':'יום הזיכרון','2026-04-21':'יום העצמאות',
+  '2026-05-21':'שבועות','2026-05-22':'שבועות',
+  '2026-09-11':'ראש השנה','2026-09-12':'ראש השנה',
+  '2026-09-20':'יום כיפור',
+  '2026-09-25':'סוכות','2026-09-26':'חול המועד סוכות','2026-09-27':'חול המועד סוכות','2026-09-28':'חול המועד סוכות','2026-09-29':'חול המועד סוכות','2026-09-30':'חול המועד סוכות',
+  '2026-10-02':'שמיני עצרת','2026-10-03':'שמחת תורה',
+  '2026-12-04':'חנוכה','2026-12-05':'חנוכה','2026-12-06':'חנוכה','2026-12-07':'חנוכה','2026-12-08':'חנוכה','2026-12-09':'חנוכה','2026-12-10':'חנוכה','2026-12-11':'חנוכה','2026-12-12':'חנוכה',
+  /* 2027 */
+  '2027-03-21':'פורים','2027-03-22':'שושן פורים',
+  '2027-04-20':'פסח','2027-04-21':'חול המועד פסח','2027-04-22':'חול המועד פסח','2027-04-23':'חול המועד פסח','2027-04-24':'חול המועד פסח','2027-04-25':'חול המועד פסח','2027-04-26':'שביעי של פסח',
+  '2027-05-02':'יום השואה',
+  '2027-05-09':'יום הזיכרון','2027-05-10':'יום העצמאות',
+  '2027-06-09':'שבועות','2027-06-10':'שבועות',
+  '2027-10-01':'ראש השנה','2027-10-02':'ראש השנה',
+  '2027-10-10':'יום כיפור',
+  '2027-10-15':'סוכות','2027-10-16':'חול המועד סוכות','2027-10-17':'חול המועד סוכות','2027-10-18':'חול המועד סוכות','2027-10-19':'חול המועד סוכות','2027-10-20':'חול המועד סוכות',
+  '2027-10-22':'שמיני עצרת','2027-10-23':'שמחת תורה',
+};
 
 /* ══════════ DEFAULT DATA ══════════ */
 const DEF_WD=[
@@ -1446,13 +1505,20 @@ function renderAttendance(){
     const ds=year+'-'+String(mon).padStart(2,'0')+'-'+String(day).padStart(2,'0');
     const dow=new Date(ds+'T12:00:00').getDay(),isWknd=dow===5||dow===6;
     const entry=ua[ds]||{},mins=calcAttMins(entry.clockIn,entry.clockOut);
-    totalMins+=mins;if(entry.clockIn)workedDays++;
+    const holiday=IL_HOLIDAYS[ds]||'';const isVacation=!!entry.vacation;
+    totalMins+=mins;if(entry.clockIn&&!isVacation)workedDays++;
     let badge='';
-    if(entry.clockIn&&entry.clockOut)badge='<span class="badge-done">\u2714 הושלם</span>';
-    else if(entry.clockIn)badge='<span class="badge-partial">\u23f3 חסרה יציאה</span>';
-    else if(!isWknd&&ds<=todayStr())badge='<span class="badge-off">\u2014</span>';
-    const editCell=isAdmin?`<td><button class="btn btn-ghost" style="font-size:.72rem;padding:3px 8px" onclick="editAttEntry('${ds}')">\u270f</button></td>`:'';
-    rows+=`<tr style="${isWknd?'opacity:.45':''}"><td>${ds}</td><td>${DAYS_HE[dow]}</td><td>${esc(entry.clockIn||'\u2014')}</td><td>${esc(entry.clockOut||'\u2014')}</td><td>${mins>0?fmtMins(mins):'\u2014'}</td><td>${badge}</td>${editCell}</tr>`;
+    if(isVacation){badge='<span class="badge-vacation">🏖 חופש</span>';}
+    else if(entry.clockIn&&entry.clockOut){badge='<span class="badge-done">\u2714 הושלם</span>';}
+    else if(entry.clockIn){badge='<span class="badge-partial">\u23f3 חסרה יציאה</span>';}
+    else if(!isWknd&&ds<=todayStr()){badge='<span class="badge-off">\u2014</span>';}
+    if(holiday)badge='<span class="badge-holiday">'+esc(holiday)+'</span>'+(badge?'<br>'+badge:'');
+    let rowCls=isWknd?'att-row-wknd':'';
+    if(holiday&&!isWknd)rowCls='att-row-holiday';
+    if(isVacation)rowCls=(isWknd?'att-row-wknd ':'')+'att-row-vacation';
+    const vacStyle=isVacation?'color:#43a047;border-color:#43a047;':'';
+    const editCell=isAdmin?`<td style="white-space:nowrap"><button class="btn btn-ghost" style="font-size:.72rem;padding:3px 8px" onclick="editAttEntry('${ds}')">\u270f</button> <button class="btn btn-ghost" style="font-size:.72rem;padding:3px 7px;${vacStyle}" onclick="toggleVacation('${ds}')" title="${isVacation?'\u05d1\u05d8\u05dc \u05d7\u05d5\u05e4\u05e9':'\u05e1\u05de\u05df \u05db\u05d9\u05d5\u05dd \u05d7\u05d5\u05e4\u05e9'}">${isVacation?'\u2714':'🏖'}</button></td>`:'';
+    rows+=`<tr class="${rowCls}"><td>${ds}</td><td>${DAYS_HE[dow]}</td><td>${esc(isVacation?'\u2014':entry.clockIn||'\u2014')}</td><td>${esc(isVacation?'\u2014':entry.clockOut||'\u2014')}</td><td>${mins>0&&!isVacation?fmtMins(mins):'\u2014'}</td><td>${badge}</td>${editCell}</tr>`;
   }
   document.getElementById('att-tbody').innerHTML=rows;
   const regMins=Math.min(totalMins,LIMIT),otMins=Math.max(0,totalMins-LIMIT);
@@ -1483,8 +1549,9 @@ function editAttEntry(ds){
   document.getElementById('modal-body').innerHTML=`
     <input type="hidden" id="att-edit-date" value="${ds}">
     <input type="hidden" id="att-edit-uid" value="${editUid}">
-    <div class="form-group"><label class="form-label">שעת כניסה</label><input id="att-edit-in" class="form-ctrl" type="time" value="${entry.clockIn||''}"></div>
-    <div class="form-group"><label class="form-label">שעת יציאה</label><input id="att-edit-out" class="form-ctrl" type="time" value="${entry.clockOut||''}"></div>`;
+    <div class="form-group"><label class="form-label">שעת כניסה</label><input id="att-edit-in" class="form-ctrl" type="time" value="${entry.vacation?'':(entry.clockIn||'')}"></div>
+    <div class="form-group"><label class="form-label">שעת יציאה</label><input id="att-edit-out" class="form-ctrl" type="time" value="${entry.vacation?'':(entry.clockOut||'')}"></div>
+    <div class="form-group" style="margin-top:10px;display:flex;align-items:center;gap:9px"><input type="checkbox" id="att-edit-vacation" ${entry.vacation?'checked':''} style="width:16px;height:16px;cursor:pointer;accent-color:#43a047"><label for="att-edit-vacation" style="cursor:pointer;font-size:.9rem;font-weight:600">🏖 סמן כיום חופש</label></div>`;
   document.getElementById('modal-overlay').style.display='flex';
   setTimeout(()=>document.getElementById('att-edit-in').focus(),50);
 }
@@ -1499,12 +1566,39 @@ function saveAttEdit(){
   const ua=getUserAtt(saveUid);
   if(!ua[ds])ua[ds]={};
   const nowTs=Date.now();
-  if(ni){ua[ds].clockIn=ni;ua[ds].clockInTs=nowTs;}else{delete ua[ds].clockIn;ua[ds].clockInTs=nowTs;}
-  if(no){ua[ds].clockOut=no;ua[ds].clockOutTs=nowTs;}else{delete ua[ds].clockOut;ua[ds].clockOutTs=nowTs;}
-  if(!ni&&!no){ua[ds].clockInTs=nowTs;ua[ds].clockOutTs=nowTs;}
+  const isVac=document.getElementById('att-edit-vacation').checked;
+  if(isVac){
+    ua[ds].vacation=true;ua[ds].vacationTs=nowTs;
+    delete ua[ds].clockIn;delete ua[ds].clockOut;
+    ua[ds].clockInTs=nowTs;ua[ds].clockOutTs=nowTs;
+  } else {
+    delete ua[ds].vacation;
+    if(ni){ua[ds].clockIn=ni;ua[ds].clockInTs=nowTs;}else{delete ua[ds].clockIn;ua[ds].clockInTs=nowTs;}
+    if(no){ua[ds].clockOut=no;ua[ds].clockOutTs=nowTs;}else{delete ua[ds].clockOut;ua[ds].clockOutTs=nowTs;}
+    if(!ni&&!no){ua[ds].clockInTs=nowTs;ua[ds].clockOutTs=nowTs;}
+  }
   saveDB();closeModal();renderAttendance();
   if(ds===todayStr())updateClockUI();
-  toast('\u2714 \u05e9\u05e2\u05d5\u05ea \u05e2\u05d5\u05d3\u05db\u05e0\u05d5');
+  toast(isVac?'🏖 \u05d9\u05d5\u05dd \u05d7\u05d5\u05e4\u05e9 \u05e0\u05e9\u05de\u05e8':'\u2714 \u05e9\u05e2\u05d5\u05ea \u05e2\u05d5\u05d3\u05db\u05e0\u05d5');
+}
+
+function toggleVacation(ds){
+  if(!isAdmin)return;
+  if(!DB.attendance)DB.attendance={};
+  const uid2=attViewUserId||CU.id;
+  const ua=getUserAtt(uid2);
+  if(!ua[ds])ua[ds]={};
+  const nowTs=Date.now();
+  if(ua[ds].vacation){
+    delete ua[ds].vacation;delete ua[ds].vacationTs;
+    toast('\u2714 \u05d7\u05d5\u05e4\u05e9 \u05d1\u05d5\u05d8\u05dc');
+  } else {
+    ua[ds].vacation=true;ua[ds].vacationTs=nowTs;
+    delete ua[ds].clockIn;delete ua[ds].clockOut;
+    ua[ds].clockInTs=nowTs;ua[ds].clockOutTs=nowTs;
+    toast('🏖 \u05d9\u05d5\u05dd \u05d7\u05d5\u05e4\u05e9 \u05e0\u05d5\u05e1\u05e3');
+  }
+  saveDB();renderAttendance();
 }
 
 function exportAttExcel(){
