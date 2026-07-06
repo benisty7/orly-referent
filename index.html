@@ -1504,7 +1504,7 @@ function renderAttendance(){
 
   const ym=getAttYM();const[year,mon]=ym.split('-').map(Number);
   document.getElementById('att-month-label').textContent=MONTHS_HE[mon-1]+' '+year;
-  const thEdit=document.getElementById('att-th-edit');if(thEdit)thEdit.style.display=isAdmin?'':'none';
+  const thEdit=document.getElementById('att-th-edit');if(thEdit)thEdit.style.display='';
   const daysInMon=new Date(year,mon,0).getDate(),ua=getUserAtt(viewUid);
   const LIMIT=182*60;let totalMins=0,rows='',workedDays=0;
   for(let day=1;day<=daysInMon;day++){
@@ -1523,7 +1523,8 @@ function renderAttendance(){
     if(holiday&&!isWknd)rowCls='att-row-holiday';
     if(isVacation)rowCls=(isWknd?'att-row-wknd ':'')+'att-row-vacation';
     const vacStyle=isVacation?'color:#43a047;border-color:#43a047;':'';
-    const editCell=isAdmin?`<td style="white-space:nowrap"><button class="btn btn-ghost" style="font-size:.72rem;padding:3px 8px" onclick="editAttEntry('${ds}')">\u270f</button> <button class="btn btn-ghost" style="font-size:.72rem;padding:3px 7px;${vacStyle}" onclick="toggleVacation('${ds}')" title="${isVacation?'\u05d1\u05d8\u05dc \u05d7\u05d5\u05e4\u05e9':'\u05e1\u05de\u05df \u05db\u05d9\u05d5\u05dd \u05d7\u05d5\u05e4\u05e9'}">${isVacation?'\u2714':'🏖'}</button></td>`:'';
+    const vacBtn=`<button class="btn btn-ghost" style="font-size:.72rem;padding:3px 7px;${vacStyle}" onclick="toggleVacation('${ds}')" title="${isVacation?'\u05d1\u05d8\u05dc \u05d7\u05d5\u05e4\u05e9':'\u05e1\u05de\u05df \u05db\u05d9\u05d5\u05dd \u05d7\u05d5\u05e4\u05e9'}">${isVacation?'\u2714':'🏖'}</button>`;
+    const editCell=isAdmin?`<td style="white-space:nowrap"><button class="btn btn-ghost" style="font-size:.72rem;padding:3px 8px" onclick="editAttEntry('${ds}')">\u270f</button> ${vacBtn}</td>`:`<td>${vacBtn}</td>`;
     rows+=`<tr class="${rowCls}"><td>${ds}</td><td>${DAYS_HE[dow]}</td><td>${esc(isVacation?'\u2014':entry.clockIn||'\u2014')}</td><td>${esc(isVacation?'\u2014':entry.clockOut||'\u2014')}</td><td>${mins>0&&!isVacation?fmtMins(mins):'\u2014'}</td><td>${badge}</td>${editCell}</tr>`;
   }
   document.getElementById('att-tbody').innerHTML=rows;
@@ -1589,9 +1590,9 @@ function saveAttEdit(){
 }
 
 function toggleVacation(ds){
-  if(!isAdmin)return;
+  if(!CU)return;
   if(!DB.attendance)DB.attendance={};
-  const uid2=attViewUserId||CU.id;
+  const uid2=isAdmin?(attViewUserId||CU.id):CU.id;
   const ua=getUserAtt(uid2);
   if(!ua[ds])ua[ds]={};
   const nowTs=Date.now();
