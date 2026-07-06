@@ -1402,12 +1402,18 @@ function mergeAttendance(local,remote){
       // timestamp-wins: מי שעדכן אחרון מנצח
       const lInTs=local[u][d].clockInTs||0, rInTs=merged[u][d].clockInTs||0;
       const lOutTs=local[u][d].clockOutTs||0, rOutTs=merged[u][d].clockOutTs||0;
+      const lVacTs=local[u][d].vacationTs||0, rVacTs=merged[u][d].vacationTs||0;
       merged[u][d]={
         clockIn:   lInTs>=rInTs  ? local[u][d].clockIn  : merged[u][d].clockIn,
         clockInTs: Math.max(lInTs,rInTs)||undefined,
         clockOut:  lOutTs>=rOutTs? local[u][d].clockOut : merged[u][d].clockOut,
         clockOutTs:Math.max(lOutTs,rOutTs)||undefined
       };
+      // vacation: מי שעדכן אחרון מנצח
+      const winVac=lVacTs>=rVacTs?local[u][d].vacation:merged[u][d].vacation;
+      if(winVac)merged[u][d].vacation=true; else delete merged[u][d].vacation;
+      const winVacTs=Math.max(lVacTs,rVacTs)||undefined;
+      if(winVacTs)merged[u][d].vacationTs=winVacTs; else delete merged[u][d].vacationTs;
       // נקה undefined
       if(!merged[u][d].clockIn)delete merged[u][d].clockIn;
       if(!merged[u][d].clockInTs)delete merged[u][d].clockInTs;
@@ -1590,7 +1596,7 @@ function toggleVacation(ds){
   if(!ua[ds])ua[ds]={};
   const nowTs=Date.now();
   if(ua[ds].vacation){
-    delete ua[ds].vacation;delete ua[ds].vacationTs;
+    delete ua[ds].vacation;ua[ds].vacationTs=nowTs;
     toast('\u2714 \u05d7\u05d5\u05e4\u05e9 \u05d1\u05d5\u05d8\u05dc');
   } else {
     ua[ds].vacation=true;ua[ds].vacationTs=nowTs;
