@@ -1385,7 +1385,7 @@ function exportHistExcel(){
 
 /* ══════════ ATTENDANCE ══════════ */
 let attMonthOffset=0,attViewUserId=null,contentViewUserId=null;
-function getAttYM(){const d=new Date();d.setMonth(d.getMonth()+attMonthOffset);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function getAttYM(){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+attMonthOffset);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function attMove(dir){attMonthOffset+=dir;renderAttendance();}
 function attNow(){attMonthOffset=0;renderAttendance();}
 function attChangeUser(uid2){attViewUserId=uid2;renderAttendance();}
